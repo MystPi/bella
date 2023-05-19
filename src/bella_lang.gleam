@@ -1,6 +1,6 @@
 import gleam/io
 import gleam/result.{then as try}
-import tokenizer
+import lexer
 import parser
 import evaluator
 
@@ -141,7 +141,7 @@ print,{ length_of_vec, 5, 6 }
   4 |> fact |> print
   "
 
-  let tokens = tokenizer.tokenize(test_str)
+  let tokens = lexer.lex(test_str)
   io.debug(tokens)
 
   use tokens <- try(tokens)

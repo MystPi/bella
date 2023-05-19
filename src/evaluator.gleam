@@ -3,15 +3,15 @@ import gleam/io
 import gleam/float
 import gleam/int
 import gleam/result.{then}
-import data/ast
 import data/error
-import data/token
+import parser
+import lexer
 
 pub type DataType {
   Number(Float)
   String(String)
   Bool(Bool)
-  Lambda(param: String, body: ast.Expr, closure: Scope)
+  Lambda(param: String, body: parser.Expr, closure: Scope)
   Builtin(func: fn(DataType, Scope) -> Evaluated)
 }
 
@@ -21,7 +21,7 @@ pub type Scope =
 pub type Evaluated =
   Result(#(DataType, Scope), error.Error)
 
-pub fn evaluate(exprs: List(ast.Expr)) -> Evaluated {
+pub fn evaluate(exprs: List(parser.Expr)) -> Evaluated {
   let builtins =
     map.from_list([
       #(
@@ -40,7 +40,7 @@ pub fn evaluate(exprs: List(ast.Expr)) -> Evaluated {
 }
 
 pub fn eval_all(
-  exprs: List(ast.Expr),
+  exprs: List(parser.Expr),
   evaled: List(DataType),
   scope: Scope,
 ) -> Evaluated {
@@ -58,19 +58,19 @@ pub fn eval_all(
   }
 }
 
-fn eval(expr: ast.Expr, scope: Scope) -> Evaluated {
+fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
   case expr {
-    ast.Number(x) -> Ok(#(Number(x), scope))
-    ast.String(x) -> Ok(#(String(x), scope))
-    ast.Bool(x) -> Ok(#(Bool(x), scope))
-    ast.Lambda(arg, body) -> Ok(#(Lambda(arg, body, scope), scope))
-    ast.Var(x) -> get_var(x, scope)
-    ast.Block(exprs) -> eval_all(exprs, [], scope)
-    ast.BinOp(op, left, right) -> eval_binop(op, left, right, scope)
-    ast.Unary(op, value) -> eval_unary(op, value, scope)
-    ast.Call(callee, arg) -> eval_call(callee, arg, scope)
-    ast.Let(name, value, body) -> eval_let(name, value, body, scope)
-    ast.If(cond, true_branch, false_branch) ->
+    parser.Number(x) -> Ok(#(Number(x), scope))
+    parser.String(x) -> Ok(#(String(x), scope))
+    parser.Bool(x) -> Ok(#(Bool(x), scope))
+    parser.Lambda(arg, body) -> Ok(#(Lambda(arg, body, scope), scope))
+    parser.Var(x) -> get_var(x, scope)
+    parser.Block(exprs) -> eval_all(exprs, [], scope)
+    parser.BinOp(op, left, right) -> eval_binop(op, left, right, scope)
+    parser.Unary(op, value) -> eval_unary(op, value, scope)
+    parser.Call(callee, arg) -> eval_call(callee, arg, scope)
+    parser.Let(name, value, body) -> eval_let(name, value, body, scope)
+    parser.If(cond, true_branch, false_branch) ->
       eval_if(cond, true_branch, false_branch, scope)
   }
 }
@@ -83,13 +83,13 @@ fn get_var(name: String, scope: Scope) -> Evaluated {
 }
 
 fn eval_binop(
-  op: token.Token,
-  left: ast.Expr,
-  right: ast.Expr,
+  op: lexer.Token,
+  left: parser.Expr,
+  right: parser.Expr,
   scope: Scope,
 ) -> Evaluated {
   case op {
-    token.Plus -> {
+    lexer.Plus -> {
       use #(left, _) <- then(eval(left, scope))
       use #(right, _) <- then(eval(right, scope))
       case left, right {
@@ -101,7 +101,7 @@ fn eval_binop(
           )
       }
     }
-    token.Minus -> {
+    lexer.Minus -> {
       use #(left, _) <- then(eval(left, scope))
       use #(right, _) <- then(eval(right, scope))
       case left, right {
@@ -109,7 +109,7 @@ fn eval_binop(
         _, _ -> error.runtime_error("Operands of - must be numbers")
       }
     }
-    token.Star -> {
+    lexer.Star -> {
       use #(left, _) <- then(eval(left, scope))
       use #(right, _) <- then(eval(right, scope))
       case left, right {
@@ -117,7 +117,7 @@ fn eval_binop(
         _, _ -> error.runtime_error("Operands of * must be numbers")
       }
     }
-    token.Slash -> {
+    lexer.Slash -> {
       use #(left, _) <- then(eval(left, scope))
       use #(right, _) <- then(eval(right, scope))
       case left, right {
@@ -125,17 +125,17 @@ fn eval_binop(
         _, _ -> error.runtime_error("Operands of / must be numbers")
       }
     }
-    token.EqEq -> {
+    lexer.EqEq -> {
       use #(left, _) <- then(eval(left, scope))
       use #(right, _) <- then(eval(right, scope))
       Ok(#(Bool(left == right), scope))
     }
-    token.Neq -> {
+    lexer.Neq -> {
       use #(left, _) <- then(eval(left, scope))
       use #(right, _) <- then(eval(right, scope))
       Ok(#(Bool(left != right), scope))
     }
-    token.And -> {
+    lexer.And -> {
       use #(left, _) <- then(eval(left, scope))
       use #(right, _) <- then(eval(right, scope))
       case left, right {
@@ -143,7 +143,7 @@ fn eval_binop(
         _, _ -> error.runtime_error("Operands of `and` must be Booleans")
       }
     }
-    token.Or -> {
+    lexer.Or -> {
       use #(left, _) <- then(eval(left, scope))
       use #(right, _) <- then(eval(right, scope))
       case left, right {
@@ -151,23 +151,23 @@ fn eval_binop(
         _, _ -> error.runtime_error("Operands of `and` must be Booleans")
       }
     }
-    token.RPipe -> {
+    lexer.RPipe -> {
       eval_call(right, left, scope)
     }
     _ -> error.runtime_error("BinOp not implemented")
   }
 }
 
-fn eval_unary(op: token.Token, value: ast.Expr, scope: Scope) -> Evaluated {
+fn eval_unary(op: lexer.Token, value: parser.Expr, scope: Scope) -> Evaluated {
   case op {
-    token.Minus -> {
+    lexer.Minus -> {
       use #(value, _) <- then(eval(value, scope))
       case value {
         Number(x) -> Ok(#(Number(0.0 -. x), scope))
         _ -> error.runtime_error("Unary - applies to Numbers")
       }
     }
-    token.Bang -> {
+    lexer.Bang -> {
       use #(value, _) <- then(eval(value, scope))
       case value {
         Bool(x) -> Ok(#(Bool(!x), scope))
@@ -183,7 +183,7 @@ fn create_var(name: String, value: DataType, scope: Scope) -> Scope {
   map.insert(scope, name, value)
 }
 
-fn eval_call(callee: ast.Expr, arg: ast.Expr, scope: Scope) -> Evaluated {
+fn eval_call(callee: parser.Expr, arg: parser.Expr, scope: Scope) -> Evaluated {
   use #(callee, _) <- then(eval(callee, scope))
   use #(arg, _) <- then(eval(arg, scope))
   case callee {
@@ -201,8 +201,8 @@ fn eval_call(callee: ast.Expr, arg: ast.Expr, scope: Scope) -> Evaluated {
 
 fn eval_let(
   name: String,
-  value: ast.Expr,
-  body: ast.Expr,
+  value: parser.Expr,
+  body: parser.Expr,
   scope: Scope,
 ) -> Evaluated {
   use #(value, _) <- then(eval(value, scope))
@@ -211,9 +211,9 @@ fn eval_let(
 }
 
 fn eval_if(
-  cond: ast.Expr,
-  true_branch: ast.Expr,
-  false_branch: ast.Expr,
+  cond: parser.Expr,
+  true_branch: parser.Expr,
+  false_branch: parser.Expr,
   scope: Scope,
 ) -> Evaluated {
   use #(cond, _) <- then(eval(cond, scope))

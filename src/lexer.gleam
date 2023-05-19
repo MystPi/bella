@@ -6,8 +6,51 @@ import gleam/map
 import gleam/int
 import gleam/float
 import gleam/option.{None, Option, Some}
-import data/token.{Token, Tokens}
 import data/error
+
+pub type Tokens =
+  List(Token)
+
+pub type Token {
+  Eof
+  WhiteSpace
+  Comment
+
+  LParen
+  RParen
+  LBrace
+  RBrace
+  Eq
+  Arrow
+  Comma
+
+  Plus
+  Minus
+  Star
+  Slash
+  EqEq
+  Neq
+  GreaterEq
+  LessEq
+  RPipe
+  Greater
+  Less
+  Bang
+
+  Ident(String)
+  String(String)
+  Number(Float)
+
+  Let
+  In
+  Try
+  If
+  Else
+  Or
+  And
+  True
+  False
+}
 
 type Matcher =
   #(String, fn(String) -> Token)
@@ -15,65 +58,65 @@ type Matcher =
 type Matched =
   Option(#(String, Token))
 
-type TokenizeResult =
+type LexResult =
   Result(Tokens, error.Error)
 
-pub fn tokenize(str: String) -> TokenizeResult {
+pub fn lex(str: String) -> LexResult {
   let keywords =
     [
-      #("let", token.Let),
-      #("in", token.In),
-      #("try", token.Try),
-      #("if", token.If),
-      #("else", token.Else),
-      #("or", token.Or),
-      #("and", token.And),
-      #("true", token.True),
-      #("false", token.False),
+      #("let", Let),
+      #("in", In),
+      #("try", Try),
+      #("if", If),
+      #("else", Else),
+      #("or", Or),
+      #("and", And),
+      #("true", True),
+      #("false", False),
     ]
     |> map.from_list
 
   let matchers = [
-    #("^\\s+", i(token.WhiteSpace)),
-    #("^;.*", i(token.Comment)),
-    #("^\\(", i(token.LParen)),
-    #("^\\)", i(token.RParen)),
-    #("^\\{", i(token.LBrace)),
-    #("^\\}", i(token.RBrace)),
-    #("^\\|>", i(token.RPipe)),
-    #("^->", i(token.Arrow)),
-    #("^==", i(token.EqEq)),
-    #("^!=", i(token.Neq)),
-    #("^>=", i(token.GreaterEq)),
-    #("^<=", i(token.LessEq)),
-    #("^,", i(token.Comma)),
-    #("^=", i(token.Eq)),
-    #("^\\+", i(token.Plus)),
-    #("^-", i(token.Minus)),
-    #("^\\*", i(token.Star)),
-    #("^/", i(token.Slash)),
-    #("^>", i(token.Greater)),
-    #("^<", i(token.Less)),
-    #("^!", i(token.Bang)),
+    #("^\\s+", i(WhiteSpace)),
+    #("^;.*", i(Comment)),
+    #("^\\(", i(LParen)),
+    #("^\\)", i(RParen)),
+    #("^\\{", i(LBrace)),
+    #("^\\}", i(RBrace)),
+    #("^\\|>", i(RPipe)),
+    #("^->", i(Arrow)),
+    #("^==", i(EqEq)),
+    #("^!=", i(Neq)),
+    #("^>=", i(GreaterEq)),
+    #("^<=", i(LessEq)),
+    #("^,", i(Comma)),
+    #("^=", i(Eq)),
+    #("^\\+", i(Plus)),
+    #("^-", i(Minus)),
+    #("^\\*", i(Star)),
+    #("^/", i(Slash)),
+    #("^>", i(Greater)),
+    #("^<", i(Less)),
+    #("^!", i(Bang)),
     #(
       "^'([^\\\\']|\\\\.)*'",
-      fn(x) { token.String(string.slice(x, 1, string.length(x) - 2)) },
+      fn(x) { String(string.slice(x, 1, string.length(x) - 2)) },
     ),
     #(
       "^[a-zA-Z_]\\w*",
       fn(word) {
         case map.get(keywords, word) {
           Ok(keyword) -> keyword
-          _ -> token.Ident(word)
+          _ -> Ident(word)
         }
       },
     ),
-    #("^\\d(\\.?\\d*)?", fn(x) { token.Number(to_float(x)) }),
+    #("^\\d(\\.?\\d*)?", fn(x) { Number(to_float(x)) }),
   ]
 
-  let ignored = [token.WhiteSpace, token.Comment]
+  let ignored = [WhiteSpace, Comment]
 
-  use tokens <- result.then(tokenize_str(str, matchers, []))
+  use tokens <- result.then(lex_str(str, matchers, []))
 
   tokens
   |> list.filter(fn(x) { !list.contains(ignored, x) })
@@ -92,16 +135,16 @@ fn to_float(x: String) -> Float {
   }
 }
 
-fn tokenize_str(
+fn lex_str(
   str: String,
   matchers: List(Matcher),
   tokens: Tokens,
-) -> TokenizeResult {
+) -> LexResult {
   case str {
-    "" -> Ok([token.Eof, ..tokens])
+    "" -> Ok([Eof, ..tokens])
     _ ->
       case match(str, matchers) {
-        Some(#(rest, tok)) -> tokenize_str(rest, matchers, [tok, ..tokens])
+        Some(#(rest, tok)) -> lex_str(rest, matchers, [tok, ..tokens])
         None -> Error(error.InvalidText(string.slice(str, 0, 5) <> "..."))
       }
   }
