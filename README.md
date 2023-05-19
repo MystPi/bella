@@ -1,5 +1,7 @@
 # bella_lang
 
+![Bella language logo](assets/Bella-language.png)
+
 [![Package Version](https://img.shields.io/hexpm/v/bella_lang)](https://hex.pm/packages/bella_lang)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/bella_lang/)
 
