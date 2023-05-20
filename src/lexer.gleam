@@ -111,7 +111,7 @@ pub fn lex(str: String) -> LexResult {
         }
       },
     ),
-    #("^\\d(\\.?\\d*)?", fn(x) { Number(to_float(x)) }),
+    #("^\\d+(\\.\\d+)?", fn(x) { Number(to_float(x)) }),
   ]
 
   let ignored = [WhiteSpace, Comment]
