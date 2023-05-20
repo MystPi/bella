@@ -122,14 +122,16 @@ print,{ length_of_vec, 5, 6 }
 ; x
   "
 
-  let test_str = "
+  let test_str =
+    "
   let a = 'first' in
   let showA = n -> a in
   let a = 'second' in
   showA, 0 |> print
   "
 
-  let test_str = "
+  let test_str =
+    "
   let fact =
     n ->
       if (n == 0)

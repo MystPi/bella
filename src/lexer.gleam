@@ -135,11 +135,7 @@ fn to_float(x: String) -> Float {
   }
 }
 
-fn lex_str(
-  str: String,
-  matchers: List(Matcher),
-  tokens: Tokens,
-) -> LexResult {
+fn lex_str(str: String, matchers: List(Matcher), tokens: Tokens) -> LexResult {
   case str {
     "" -> Ok([Eof, ..tokens])
     _ ->

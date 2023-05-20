@@ -129,7 +129,11 @@ pub fn parse_equality(tokens: Tokens) -> Parsed {
 }
 
 pub fn parse_comparison(tokens: Tokens) -> Parsed {
-  parse_binop([lexer.Greater, lexer.GreaterEq, lexer.Less, lexer.LessEq], parse_term, tokens)
+  parse_binop(
+    [lexer.Greater, lexer.GreaterEq, lexer.Less, lexer.LessEq],
+    parse_term,
+    tokens,
+  )
 }
 
 pub fn parse_term(tokens: Tokens) -> Parsed {
