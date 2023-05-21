@@ -6,7 +6,7 @@ import gleam/map
 import gleam/int
 import gleam/float
 import gleam/option.{None, Option, Some}
-import data/error
+import error
 
 pub type Tokens =
   List(Token)

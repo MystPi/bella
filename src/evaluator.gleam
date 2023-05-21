@@ -3,7 +3,7 @@ import gleam/io
 import gleam/float
 import gleam/int
 import gleam/result.{then}
-import data/error
+import error
 import parser
 import lexer
 

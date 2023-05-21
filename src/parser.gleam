@@ -1,7 +1,7 @@
 import gleam/list
 import gleam/string
 import gleam/result.{then}
-import data/error
+import error
 import lexer.{Token, Tokens}
 
 // expr := pipe | lambda | let_expr | if_expr
