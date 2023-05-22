@@ -68,7 +68,11 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
     parser.Block(exprs) -> eval_all(exprs, [], scope)
     parser.BinOp(op, left, right) -> eval_binop(op, left, right, scope)
     parser.Unary(op, value) -> eval_unary(op, value, scope)
-    parser.Call(callee, arg) -> eval_call(callee, arg, scope)
+    parser.Call(callee, arg) -> {
+      use #(callee, _) <- then(eval(callee, scope))
+      use #(arg, _) <- then(eval(arg, scope))
+      eval_call(callee, arg, scope)
+    }
     parser.Let(name, value, body) -> eval_let(name, value, body, scope)
     parser.If(cond, true_branch, false_branch) ->
       eval_if(cond, true_branch, false_branch, scope)
@@ -88,10 +92,10 @@ fn eval_binop(
   right: parser.Expr,
   scope: Scope,
 ) -> Evaluated {
+  use #(left, _) <- then(eval(left, scope))
+  use #(right, _) <- then(eval(right, scope))
   case op {
     lexer.Plus -> {
-      use #(left, _) <- then(eval(left, scope))
-      use #(right, _) <- then(eval(right, scope))
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a +. b), scope))
         String(a), String(b) -> Ok(#(String(a <> b), scope))
@@ -101,51 +105,61 @@ fn eval_binop(
           )
       }
     }
+    lexer.EqEq -> {
+      Ok(#(Bool(left == right), scope))
+    }
+    lexer.Neq -> {
+      Ok(#(Bool(left != right), scope))
+    }
     lexer.Minus -> {
-      use #(left, _) <- then(eval(left, scope))
-      use #(right, _) <- then(eval(right, scope))
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a -. b), scope))
         _, _ -> error.runtime_error("Operands of - must be numbers")
       }
     }
     lexer.Star -> {
-      use #(left, _) <- then(eval(left, scope))
-      use #(right, _) <- then(eval(right, scope))
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a *. b), scope))
         _, _ -> error.runtime_error("Operands of * must be numbers")
       }
     }
     lexer.Slash -> {
-      use #(left, _) <- then(eval(left, scope))
-      use #(right, _) <- then(eval(right, scope))
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a /. b), scope))
         _, _ -> error.runtime_error("Operands of / must be numbers")
       }
     }
-    lexer.EqEq -> {
-      use #(left, _) <- then(eval(left, scope))
-      use #(right, _) <- then(eval(right, scope))
-      Ok(#(Bool(left == right), scope))
+    lexer.Less -> {
+      case left, right {
+        Number(a), Number(b) -> Ok(#(Bool(a <. b), scope))
+        _, _ -> error.runtime_error("Operands of < must be numbers")
+      }
     }
-    lexer.Neq -> {
-      use #(left, _) <- then(eval(left, scope))
-      use #(right, _) <- then(eval(right, scope))
-      Ok(#(Bool(left != right), scope))
+    lexer.Greater -> {
+      case left, right {
+        Number(a), Number(b) -> Ok(#(Bool(a >. b), scope))
+        _, _ -> error.runtime_error("Operands of > must be numbers")
+      }
+    }
+    lexer.LessEq -> {
+      case left, right {
+        Number(a), Number(b) -> Ok(#(Bool(a <=. b), scope))
+        _, _ -> error.runtime_error("Operands of <= must be numbers")
+      }
+    }
+    lexer.GreaterEq -> {
+      case left, right {
+        Number(a), Number(b) -> Ok(#(Bool(a >=. b), scope))
+        _, _ -> error.runtime_error("Operands of >= must be numbers")
+      }
     }
     lexer.And -> {
-      use #(left, _) <- then(eval(left, scope))
-      use #(right, _) <- then(eval(right, scope))
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a && b), scope))
         _, _ -> error.runtime_error("Operands of `and` must be Booleans")
       }
     }
     lexer.Or -> {
-      use #(left, _) <- then(eval(left, scope))
-      use #(right, _) <- then(eval(right, scope))
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a || b), scope))
         _, _ -> error.runtime_error("Operands of `and` must be Booleans")
@@ -183,9 +197,7 @@ fn create_var(name: String, value: DataType, scope: Scope) -> Scope {
   map.insert(scope, name, value)
 }
 
-fn eval_call(callee: parser.Expr, arg: parser.Expr, scope: Scope) -> Evaluated {
-  use #(callee, _) <- then(eval(callee, scope))
-  use #(arg, _) <- then(eval(arg, scope))
+fn eval_call(callee: DataType, arg: DataType, scope: Scope) -> Evaluated {
   case callee {
     Lambda(param, body, closure) -> {
       use #(result, _) <- then(eval(
