@@ -2,7 +2,7 @@ import gleam/map
 import gleam/io
 import gleam/float
 import gleam/int
-import gleam/result.{then}
+import gleam/result.{try}
 import error
 import parser
 import lexer
@@ -22,8 +22,8 @@ pub type Evaluated =
   Result(#(DataType, Scope), error.Error)
 
 pub fn evaluate_str(str: String) -> Evaluated {
-  use tokens <- then(lexer.lex(str))
-  use parsed <- then(parser.parse(tokens))
+  use tokens <- try(lexer.lex(str))
+  use parsed <- try(parser.parse(tokens))
   evaluate(parsed)
 }
 
@@ -58,7 +58,7 @@ pub fn eval_all(
         _ -> error.runtime_error("Exprs cannot be empty")
       }
     [expr, ..rest] -> {
-      use #(result, _) <- then(eval(expr, scope))
+      use #(result, _) <- try(eval(expr, scope))
       eval_all(rest, [result, ..evaled], scope)
     }
   }
@@ -75,8 +75,8 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
     parser.BinOp(op, left, right) -> eval_binop(op, left, right, scope)
     parser.Unary(op, value) -> eval_unary(op, value, scope)
     parser.Call(callee, arg) -> {
-      use #(callee, _) <- then(eval(callee, scope))
-      use #(arg, _) <- then(eval(arg, scope))
+      use #(callee, _) <- try(eval(callee, scope))
+      use #(arg, _) <- try(eval(arg, scope))
       eval_call(callee, arg, scope)
     }
     parser.Let(name, value, body) -> eval_let(name, value, body, scope)
@@ -98,8 +98,8 @@ fn eval_binop(
   right: parser.Expr,
   scope: Scope,
 ) -> Evaluated {
-  use #(left, _) <- then(eval(left, scope))
-  use #(right, _) <- then(eval(right, scope))
+  use #(left, _) <- try(eval(left, scope))
+  use #(right, _) <- try(eval(right, scope))
   case op {
     lexer.Plus -> {
       case left, right {
@@ -181,14 +181,14 @@ fn eval_binop(
 fn eval_unary(op: lexer.Token, value: parser.Expr, scope: Scope) -> Evaluated {
   case op {
     lexer.Minus -> {
-      use #(value, _) <- then(eval(value, scope))
+      use #(value, _) <- try(eval(value, scope))
       case value {
         Number(x) -> Ok(#(Number(0.0 -. x), scope))
         _ -> error.runtime_error("Unary - applies to Numbers")
       }
     }
     lexer.Bang -> {
-      use #(value, _) <- then(eval(value, scope))
+      use #(value, _) <- try(eval(value, scope))
       case value {
         Bool(x) -> Ok(#(Bool(!x), scope))
         _ -> error.runtime_error("Unary ! applies to Booleans")
@@ -206,7 +206,7 @@ fn create_var(name: String, value: DataType, scope: Scope) -> Scope {
 fn eval_call(callee: DataType, arg: DataType, scope: Scope) -> Evaluated {
   case callee {
     Lambda(param, body, closure) -> {
-      use #(result, _) <- then(eval(
+      use #(result, _) <- try(eval(
         body,
         create_var(param, arg, map.merge(scope, closure)),
       ))
@@ -223,8 +223,8 @@ fn eval_let(
   body: parser.Expr,
   scope: Scope,
 ) -> Evaluated {
-  use #(value, _) <- then(eval(value, scope))
-  use #(result, _) <- then(eval(body, create_var(name, value, scope)))
+  use #(value, _) <- try(eval(value, scope))
+  use #(result, _) <- try(eval(body, create_var(name, value, scope)))
   Ok(#(result, scope))
 }
 
@@ -234,7 +234,7 @@ fn eval_if(
   false_branch: parser.Expr,
   scope: Scope,
 ) -> Evaluated {
-  use #(cond, _) <- then(eval(cond, scope))
+  use #(cond, _) <- try(eval(cond, scope))
   case cond {
     Bool(x) ->
       case x {

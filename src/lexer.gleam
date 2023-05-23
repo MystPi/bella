@@ -116,7 +116,7 @@ pub fn lex(str: String) -> LexResult {
 
   let ignored = [WhiteSpace, Comment]
 
-  use tokens <- result.then(lex_str(str, matchers, []))
+  use tokens <- result.try(lex_str(str, matchers, []))
 
   tokens
   |> list.filter(fn(x) { !list.contains(ignored, x) })

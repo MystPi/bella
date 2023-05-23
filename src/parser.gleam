@@ -1,6 +1,6 @@
 import gleam/list
 import gleam/string
-import gleam/result.{then}
+import gleam/result.{try}
 import error
 import lexer.{Token, Tokens}
 
@@ -46,7 +46,7 @@ pub type Parser =
   fn(Tokens) -> Parsed
 
 pub fn parse(tokens: Tokens) -> Result(List(Expr), error.Error) {
-  use result <- then(parse_exprs(tokens, []))
+  use result <- try(parse_exprs(tokens, []))
   result
   |> list.reverse
   |> Ok
@@ -59,7 +59,7 @@ pub fn parse_exprs(
   case tokens {
     [lexer.Eof] -> Ok(exprs)
     _ -> {
-      use #(expr, rest) <- then(parse_expr(tokens))
+      use #(expr, rest) <- try(parse_expr(tokens))
       parse_exprs(rest, [expr, ..exprs])
     }
   }
@@ -70,7 +70,7 @@ pub fn parse_expr(tokens: Tokens) -> Parsed {
     [lexer.If, ..rest] -> parse_if(rest)
     [lexer.Let, ..rest] -> parse_let(rest)
     [lexer.Ident(n), lexer.Arrow, ..rest] -> {
-      use #(body, rest) <- then(parse_expr(rest))
+      use #(body, rest) <- try(parse_expr(rest))
       Ok(#(Lambda(n, body), rest))
     }
     _ -> parse_pipe(tokens)
@@ -93,9 +93,9 @@ pub fn parse_let(tokens: Tokens) -> Parsed {
   case tokens {
     [lexer.Ident(name), ..rest] -> {
       use rest <- expect(lexer.Eq, rest, "= after identifier")
-      use #(value, rest) <- then(parse_expr(rest))
+      use #(value, rest) <- try(parse_expr(rest))
       use rest <- expect(lexer.In, rest, "`in` after initializer")
-      use #(body, rest) <- then(parse_expr(rest))
+      use #(body, rest) <- try(parse_expr(rest))
       Ok(#(Let(name, value, body), rest))
     }
     _ -> error.expected("identifier after let")
@@ -104,11 +104,11 @@ pub fn parse_let(tokens: Tokens) -> Parsed {
 
 pub fn parse_if(tokens: Tokens) -> Parsed {
   use rest <- expect(lexer.LParen, tokens, "( before condition")
-  use #(condition, rest) <- then(parse_expr(rest))
+  use #(condition, rest) <- try(parse_expr(rest))
   use rest <- expect(lexer.RParen, rest, ") after condition")
-  use #(true_branch, rest) <- then(parse_expr(rest))
+  use #(true_branch, rest) <- try(parse_expr(rest))
   use rest <- expect(lexer.Else, rest, "`else` after true branch")
-  use #(false_branch, rest) <- then(parse_expr(rest))
+  use #(false_branch, rest) <- try(parse_expr(rest))
   Ok(#(If(condition, true_branch, false_branch), rest))
 }
 
@@ -147,7 +147,7 @@ pub fn parse_factor(tokens: Tokens) -> Parsed {
 pub fn parse_unary(tokens: Tokens) -> Parsed {
   case tokens {
     [lexer.Minus as op, ..rest] | [lexer.Bang as op, ..rest] -> {
-      use #(expr, rest) <- then(parse_unary(rest))
+      use #(expr, rest) <- try(parse_unary(rest))
       Ok(#(Unary(op, expr), rest))
     }
     _ -> parse_call(tokens)
@@ -155,10 +155,10 @@ pub fn parse_unary(tokens: Tokens) -> Parsed {
 }
 
 pub fn parse_call(tokens: Tokens) -> Parsed {
-  use #(expr, rest) <- then(parse_primary(tokens))
+  use #(expr, rest) <- try(parse_primary(tokens))
   case rest {
     [lexer.LParen, ..rest] -> {
-      use #(arg, rest) <- then(parse_expr(rest))
+      use #(arg, rest) <- try(parse_expr(rest))
       finish_call(Call(expr, arg), rest)
     }
     _ -> Ok(#(expr, rest))
@@ -168,7 +168,7 @@ pub fn parse_call(tokens: Tokens) -> Parsed {
 pub fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
   case tokens {
     [lexer.Comma, ..rest] -> {
-      use #(arg, rest) <- then(parse_expr(rest))
+      use #(arg, rest) <- try(parse_expr(rest))
       finish_call(Call(callee, arg), rest)
     }
     [lexer.RParen, ..rest] -> Ok(#(callee, rest))
@@ -177,7 +177,7 @@ pub fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
 }
 
 pub fn parse_binop(ops: Tokens, subrule: Parser, tokens: Tokens) -> Parsed {
-  use #(left, rest) <- then(subrule(tokens))
+  use #(left, rest) <- try(subrule(tokens))
   finish_binop(left, ops, subrule, rest)
 }
 
@@ -190,7 +190,7 @@ pub fn finish_binop(
   let [op, ..rest] = tokens
   case list.contains(ops, op) {
     True -> {
-      use #(right, rest) <- then(subrule(rest))
+      use #(right, rest) <- try(subrule(rest))
       finish_binop(BinOp(op, left, right), ops, subrule, rest)
     }
     False -> Ok(#(left, tokens))
@@ -222,7 +222,7 @@ pub fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
       }
     }
     _ -> {
-      use #(expr, rest) <- then(parse_expr(tokens))
+      use #(expr, rest) <- try(parse_expr(tokens))
       parse_block(rest, [expr, ..acc])
     }
   }
