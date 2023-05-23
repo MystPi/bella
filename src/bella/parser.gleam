@@ -17,10 +17,10 @@ pub type Expr {
   If(cond: Expr, true_branch: Expr, false_branch: Expr)
 }
 
-pub type Parsed =
+type Parsed =
   Result(#(Expr, Tokens), error.Error)
 
-pub type Parser =
+type Parser =
   fn(Tokens) -> Parsed
 
 pub fn parse(tokens: Tokens) -> Result(List(Expr), error.Error) {
@@ -30,7 +30,7 @@ pub fn parse(tokens: Tokens) -> Result(List(Expr), error.Error) {
   |> Ok
 }
 
-pub fn parse_exprs(
+fn parse_exprs(
   tokens: Tokens,
   exprs: List(Expr),
 ) -> Result(List(Expr), error.Error) {
@@ -43,7 +43,7 @@ pub fn parse_exprs(
   }
 }
 
-pub fn parse_expr(tokens: Tokens) -> Parsed {
+fn parse_expr(tokens: Tokens) -> Parsed {
   case tokens {
     [token.If, ..rest] -> parse_if(rest)
     [token.Let, ..rest] -> parse_let(rest)
@@ -55,7 +55,7 @@ pub fn parse_expr(tokens: Tokens) -> Parsed {
   }
 }
 
-pub fn expect(
+fn expect(
   tok: Token,
   tokens: Tokens,
   msg: String,
@@ -67,7 +67,7 @@ pub fn expect(
   }
 }
 
-pub fn parse_let(tokens: Tokens) -> Parsed {
+fn parse_let(tokens: Tokens) -> Parsed {
   case tokens {
     [token.Ident(name), ..rest] -> {
       use rest <- expect(token.Eq, rest, "= after identifier")
@@ -80,7 +80,7 @@ pub fn parse_let(tokens: Tokens) -> Parsed {
   }
 }
 
-pub fn parse_if(tokens: Tokens) -> Parsed {
+fn parse_if(tokens: Tokens) -> Parsed {
   use rest <- expect(token.LParen, tokens, "( before condition")
   use #(condition, rest) <- try(parse_expr(rest))
   use rest <- expect(token.RParen, rest, ") after condition")
@@ -90,23 +90,23 @@ pub fn parse_if(tokens: Tokens) -> Parsed {
   Ok(#(If(condition, true_branch, false_branch), rest))
 }
 
-pub fn parse_pipe(tokens: Tokens) -> Parsed {
+fn parse_pipe(tokens: Tokens) -> Parsed {
   parse_binop([token.RPipe], parse_logic_or, tokens)
 }
 
-pub fn parse_logic_or(tokens: Tokens) -> Parsed {
+fn parse_logic_or(tokens: Tokens) -> Parsed {
   parse_binop([token.Or], parse_logic_and, tokens)
 }
 
-pub fn parse_logic_and(tokens: Tokens) -> Parsed {
+fn parse_logic_and(tokens: Tokens) -> Parsed {
   parse_binop([token.And], parse_equality, tokens)
 }
 
-pub fn parse_equality(tokens: Tokens) -> Parsed {
+fn parse_equality(tokens: Tokens) -> Parsed {
   parse_binop([token.EqEq, token.Neq], parse_comparison, tokens)
 }
 
-pub fn parse_comparison(tokens: Tokens) -> Parsed {
+fn parse_comparison(tokens: Tokens) -> Parsed {
   parse_binop(
     [token.Greater, token.GreaterEq, token.Less, token.LessEq],
     parse_term,
@@ -114,15 +114,15 @@ pub fn parse_comparison(tokens: Tokens) -> Parsed {
   )
 }
 
-pub fn parse_term(tokens: Tokens) -> Parsed {
+fn parse_term(tokens: Tokens) -> Parsed {
   parse_binop([token.Plus, token.Minus], parse_factor, tokens)
 }
 
-pub fn parse_factor(tokens: Tokens) -> Parsed {
+fn parse_factor(tokens: Tokens) -> Parsed {
   parse_binop([token.Star, token.Slash], parse_unary, tokens)
 }
 
-pub fn parse_unary(tokens: Tokens) -> Parsed {
+fn parse_unary(tokens: Tokens) -> Parsed {
   case tokens {
     [token.Minus as op, ..rest] | [token.Bang as op, ..rest] -> {
       use #(expr, rest) <- try(parse_unary(rest))
@@ -132,7 +132,7 @@ pub fn parse_unary(tokens: Tokens) -> Parsed {
   }
 }
 
-pub fn parse_call(tokens: Tokens) -> Parsed {
+fn parse_call(tokens: Tokens) -> Parsed {
   use #(expr, rest) <- try(parse_primary(tokens))
   case rest {
     [token.LParen, ..rest] -> {
@@ -143,7 +143,7 @@ pub fn parse_call(tokens: Tokens) -> Parsed {
   }
 }
 
-pub fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
+fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
   case tokens {
     [token.Comma, ..rest] -> {
       use #(arg, rest) <- try(parse_expr(rest))
@@ -154,12 +154,12 @@ pub fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
   }
 }
 
-pub fn parse_binop(ops: Tokens, subrule: Parser, tokens: Tokens) -> Parsed {
+fn parse_binop(ops: Tokens, subrule: Parser, tokens: Tokens) -> Parsed {
   use #(left, rest) <- try(subrule(tokens))
   finish_binop(left, ops, subrule, rest)
 }
 
-pub fn finish_binop(
+fn finish_binop(
   left: Expr,
   ops: Tokens,
   subrule: Parser,
@@ -175,7 +175,7 @@ pub fn finish_binop(
   }
 }
 
-pub fn parse_primary(tokens: Tokens) -> Parsed {
+fn parse_primary(tokens: Tokens) -> Parsed {
   case tokens {
     [token.Number(x), ..rest] -> Ok(#(Number(x), rest))
     [token.String(x), ..rest] -> Ok(#(String(x), rest))
@@ -187,7 +187,7 @@ pub fn parse_primary(tokens: Tokens) -> Parsed {
   }
 }
 
-pub fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
+fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
   case tokens {
     [token.RBrace, ..rest] -> {
       case acc {

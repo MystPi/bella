@@ -16,10 +16,10 @@ pub type DataType {
   Builtin(func: fn(DataType, Scope) -> Evaluated)
 }
 
-pub type Scope =
+type Scope =
   map.Map(String, DataType)
 
-pub type Evaluated =
+type Evaluated =
   Result(#(DataType, Scope), error.Error)
 
 pub fn evaluate_str(str: String) -> Evaluated {
@@ -28,7 +28,7 @@ pub fn evaluate_str(str: String) -> Evaluated {
   evaluate(parsed)
 }
 
-pub fn evaluate(exprs: List(parser.Expr)) -> Evaluated {
+fn evaluate(exprs: List(parser.Expr)) -> Evaluated {
   let builtins =
     map.from_list([
       #(
@@ -46,7 +46,7 @@ pub fn evaluate(exprs: List(parser.Expr)) -> Evaluated {
   eval_all(exprs, [], builtins)
 }
 
-pub fn eval_all(
+fn eval_all(
   exprs: List(parser.Expr),
   evaled: List(DataType),
   scope: Scope,
