@@ -161,3 +161,42 @@ fn match_regex(matcher: Matcher, str: String) -> Matched {
     [] -> None
   }
 }
+
+pub fn token_to_string(token: Token) -> String {
+  case token {
+    Eof -> "EOF"
+    WhiteSpace -> "Whitespace"
+    Comment -> "Comment"
+    LParen -> "("
+    RParen -> ")"
+    LBrace -> "{"
+    RBrace -> "}"
+    Eq -> "="
+    Arrow -> "->"
+    Comma -> ","
+    Plus -> "+"
+    Minus -> "-"
+    Star -> "*"
+    Slash -> "/"
+    EqEq -> "=="
+    Neq -> "!="
+    GreaterEq -> ">="
+    LessEq -> "<="
+    RPipe -> "|>"
+    Greater -> ">"
+    Less -> "<"
+    Bang -> "!"
+    Ident(x) -> x
+    String(x) -> "'" <> x <> "'"
+    Number(x) -> float.to_string(x)
+    Let -> "let"
+    In -> "in"
+    Try -> "try"
+    If -> "if"
+    Else -> "else"
+    Or -> "or"
+    And -> "and"
+    True -> "true"
+    False -> "false"
+  }
+}
