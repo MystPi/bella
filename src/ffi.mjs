@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { Ok, Error } from './gleam.mjs'
+import { Ok, Error, toList } from './gleam.mjs'
 
 export function readFile(path) {
   try {
@@ -9,12 +9,6 @@ export function readFile(path) {
   }
 }
 
-export function getArg(n) {
-  const arg = process.argv.slice(2)[n];
-
-  if (arg === undefined) {
-    return new Error(undefined);
-  }
-
-  return new Ok(arg);
+export function getArgs() {
+  return toList(process.argv.slice(2));
 }

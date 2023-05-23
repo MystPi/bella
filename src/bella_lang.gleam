@@ -4,8 +4,8 @@ import error
 import utils
 
 pub fn main() {
-  case utils.get_arg(0) {
-    Ok(path) -> run_file(path)
+  case utils.get_args() {
+    [path, ..] -> run_file(path)
     _ -> io.println_error("Please specify a path")
   }
 }
