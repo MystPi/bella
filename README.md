@@ -4,20 +4,16 @@
 
 Bella is a simple functional programming language, written in [Gleam](https://gleam.run). Still very much a work-in-progress. 🚧
 
-## Quick start
+## Using Bella
+
+There might be a way to have a binary in the future, but for now you will need:
+
+- Gleam
+- Node.js _(This is Gleam's target runtime)_
+- This repo
+
+Then you can try out the [examples](/examples/):
 
 ```sh
-gleam run   # Run the project
-gleam test  # Run the tests
-gleam shell # Run an Erlang shell
+gleam run ./examples/hello_world.bella
 ```
-
-## Installation
-
-If available on Hex this package can be added to your Gleam project:
-
-```sh
-gleam add bella_lang
-```
-
-and its documentation can be found at <https://hexdocs.pm/bella_lang>.
