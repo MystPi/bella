@@ -1,4 +1,4 @@
-# bella_lang
+# bella
 
 ![Bella language logo](assets/Bella-language.png)
 

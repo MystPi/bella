@@ -3,9 +3,10 @@ import gleam/io
 import gleam/float
 import gleam/int
 import gleam/result.{try}
-import error
-import parser
-import lexer
+import bella/error
+import bella/parser
+import bella/lexer
+import bella/lexer/token
 
 pub type DataType {
   Number(Float)
@@ -93,7 +94,7 @@ fn get_var(name: String, scope: Scope) -> Evaluated {
 }
 
 fn eval_binop(
-  op: lexer.Token,
+  op: token.Token,
   left: parser.Expr,
   right: parser.Expr,
   scope: Scope,
@@ -101,7 +102,7 @@ fn eval_binop(
   use #(left, _) <- try(eval(left, scope))
   use #(right, _) <- try(eval(right, scope))
   case op {
-    lexer.Plus -> {
+    token.Plus -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a +. b), scope))
         String(a), String(b) -> Ok(#(String(a <> b), scope))
@@ -111,83 +112,83 @@ fn eval_binop(
           )
       }
     }
-    lexer.EqEq -> {
+    token.EqEq -> {
       Ok(#(Bool(left == right), scope))
     }
-    lexer.Neq -> {
+    token.Neq -> {
       Ok(#(Bool(left != right), scope))
     }
-    lexer.Minus -> {
+    token.Minus -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a -. b), scope))
         _, _ -> error.runtime_error("Operands of - must be numbers")
       }
     }
-    lexer.Star -> {
+    token.Star -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a *. b), scope))
         _, _ -> error.runtime_error("Operands of * must be numbers")
       }
     }
-    lexer.Slash -> {
+    token.Slash -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a /. b), scope))
         _, _ -> error.runtime_error("Operands of / must be numbers")
       }
     }
-    lexer.Less -> {
+    token.Less -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <. b), scope))
         _, _ -> error.runtime_error("Operands of < must be numbers")
       }
     }
-    lexer.Greater -> {
+    token.Greater -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >. b), scope))
         _, _ -> error.runtime_error("Operands of > must be numbers")
       }
     }
-    lexer.LessEq -> {
+    token.LessEq -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <=. b), scope))
         _, _ -> error.runtime_error("Operands of <= must be numbers")
       }
     }
-    lexer.GreaterEq -> {
+    token.GreaterEq -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >=. b), scope))
         _, _ -> error.runtime_error("Operands of >= must be numbers")
       }
     }
-    lexer.And -> {
+    token.And -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a && b), scope))
         _, _ -> error.runtime_error("Operands of `and` must be Booleans")
       }
     }
-    lexer.Or -> {
+    token.Or -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a || b), scope))
         _, _ -> error.runtime_error("Operands of `and` must be Booleans")
       }
     }
-    lexer.RPipe -> {
+    token.RPipe -> {
       eval_call(right, left, scope)
     }
     _ -> error.runtime_error("BinOp not implemented")
   }
 }
 
-fn eval_unary(op: lexer.Token, value: parser.Expr, scope: Scope) -> Evaluated {
+fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
   case op {
-    lexer.Minus -> {
+    token.Minus -> {
       use #(value, _) <- try(eval(value, scope))
       case value {
         Number(x) -> Ok(#(Number(0.0 -. x), scope))
         _ -> error.runtime_error("Unary - applies to Numbers")
       }
     }
-    lexer.Bang -> {
+    token.Bang -> {
       use #(value, _) <- try(eval(value, scope))
       case value {
         Bool(x) -> Ok(#(Bool(!x), scope))

@@ -1,5 +1,5 @@
 pub external fn read_file(String) -> Result(String, String) =
-  "./ffi.mjs" "readFile"
+  "../ffi.mjs" "readFile"
 
 pub external fn get_args() -> List(String) =
-  "./ffi.mjs" "getArgs"
+  "../ffi.mjs" "getArgs"

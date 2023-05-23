@@ -1,7 +1,7 @@
 import gleam/io
-import evaluator
-import error
-import utils
+import bella/evaluator
+import bella/error
+import bella/utils
 
 pub fn main() {
   case utils.get_args() {
