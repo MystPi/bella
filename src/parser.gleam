@@ -92,22 +92,22 @@ pub fn expect(
 pub fn parse_let(tokens: Tokens) -> Parsed {
   case tokens {
     [lexer.Ident(name), ..rest] -> {
-      use rest <- expect(lexer.Eq, rest, "Expected = after identifier")
+      use rest <- expect(lexer.Eq, rest, "= after identifier")
       use #(value, rest) <- then(parse_expr(rest))
-      use rest <- expect(lexer.In, rest, "Expected `in` after initializer")
+      use rest <- expect(lexer.In, rest, "`in` after initializer")
       use #(body, rest) <- then(parse_expr(rest))
       Ok(#(Let(name, value, body), rest))
     }
-    _ -> error.expected("Expected identifier after let")
+    _ -> error.expected("identifier after let")
   }
 }
 
 pub fn parse_if(tokens: Tokens) -> Parsed {
-  use rest <- expect(lexer.LParen, tokens, "Expected ( before condition")
+  use rest <- expect(lexer.LParen, tokens, "( before condition")
   use #(condition, rest) <- then(parse_expr(rest))
-  use rest <- expect(lexer.RParen, rest, "Expected ) after condition")
+  use rest <- expect(lexer.RParen, rest, ") after condition")
   use #(true_branch, rest) <- then(parse_expr(rest))
-  use rest <- expect(lexer.Else, rest, "Expected `else` after true branch")
+  use rest <- expect(lexer.Else, rest, "`else` after true branch")
   use #(false_branch, rest) <- then(parse_expr(rest))
   Ok(#(If(condition, true_branch, false_branch), rest))
 }
@@ -172,7 +172,7 @@ pub fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
       finish_call(Call(callee, arg), rest)
     }
     [lexer.RParen, ..rest] -> Ok(#(callee, rest))
-    _ -> error.expected("Expected , or )")
+    _ -> error.expected(", or )")
   }
 }
 
@@ -205,7 +205,10 @@ pub fn parse_primary(tokens: Tokens) -> Parsed {
     [lexer.True, ..rest] -> Ok(#(Bool(True), rest))
     [lexer.False, ..rest] -> Ok(#(Bool(False), rest))
     [lexer.LBrace, ..rest] -> parse_block(rest, [])
-    [tok, ..] -> error.unexpected("Unexpected token: " <> string.inspect(tok))
+    [tok, ..] -> case tok {
+      lexer.Eof -> error.unexpected("end of file")
+      _ -> error.unexpected("token: " <> string.inspect(tok))
+    }
   }
 }
 
@@ -213,7 +216,7 @@ pub fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
   case tokens {
     [lexer.RBrace, ..rest] -> {
       case acc {
-        [] -> Error(error.EmptyBlock)
+        [] -> error.unexpected("end of block")
         _ -> Ok(#(Block(list.reverse(acc)), rest))
       }
     }

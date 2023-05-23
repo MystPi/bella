@@ -4,7 +4,6 @@ pub type Error {
   InvalidText(String)
   Expected(String)
   Unexpected(String)
-  EmptyBlock
   RuntimeError(String)
 }
 
