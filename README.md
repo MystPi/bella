@@ -1,11 +1,8 @@
-# bella
+# Bella programming language
 
 ![Bella language logo](assets/Bella-language.png)
 
-[![Package Version](https://img.shields.io/hexpm/v/bella_lang)](https://hex.pm/packages/bella_lang)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/bella_lang/)
-
-A Gleam project
+Bella is a simple functional programming language, written in [Gleam](https://gleam.run). Still very much a work-in-progress. 🚧
 
 ## Quick start
 
