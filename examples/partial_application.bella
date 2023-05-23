@@ -1,0 +1,14 @@
+let add3tog =
+  x -> y -> z ->
+    x + y + z
+in
+
+let add5 =
+  add3tog(5)
+in
+
+let add7 =
+  add5(2)
+in
+
+print(add7(6))
