@@ -21,6 +21,12 @@ pub type Scope =
 pub type Evaluated =
   Result(#(DataType, Scope), error.Error)
 
+pub fn evaluate_str(str: String) -> Evaluated {
+  use tokens <- then(lexer.lex(str))
+  use parsed <- then(parser.parse(tokens))
+  evaluate(parsed)
+}
+
 pub fn evaluate(exprs: List(parser.Expr)) -> Evaluated {
   let builtins =
     map.from_list([

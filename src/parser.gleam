@@ -205,10 +205,11 @@ pub fn parse_primary(tokens: Tokens) -> Parsed {
     [lexer.True, ..rest] -> Ok(#(Bool(True), rest))
     [lexer.False, ..rest] -> Ok(#(Bool(False), rest))
     [lexer.LBrace, ..rest] -> parse_block(rest, [])
-    [tok, ..] -> case tok {
-      lexer.Eof -> error.unexpected("end of file")
-      _ -> error.unexpected("token: " <> string.inspect(tok))
-    }
+    [tok, ..] ->
+      case tok {
+        lexer.Eof -> error.unexpected("end of file")
+        _ -> error.unexpected("token: " <> string.inspect(tok))
+      }
   }
 }
 
