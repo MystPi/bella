@@ -1,9 +1,12 @@
-NOTE: current parser implementation doesn't follow grammar exactly
+> **Note**: this is the _target_ grammar; the implementation currently has some differences:
 
+- `let` only allows one initializer
+
+```
 expr := pipe | lambda | let_expr | if_expr
 
 lambda := Ident '->' expr
-let_expr := 'let' Ident '=' expr 'in' expr
+let_expr := 'let' ( Ident '=' expr 'in' )+ expr
 if_expr := 'if' '(' expr ')' expr 'else' expr
 
 pipe := logic_or ( '|>' logic_or ) *
@@ -14,9 +17,10 @@ comparison := term ( ( '>' | '>=' | '<' | '<=' ) term )*
 term := factor ( ( '+' | '-' ) factor )*
 factor := unary ( ( '/' | '*' ) unary )*
 unary := ( '-' | '!' ) unary | call
-call := primary ( '(' expr ( ',' expr )* ')' )*
+call := primary ( '(' expr ( ',' expr )* ')' )?
 
 primary := Ident | Number | String | bool | block
 
 block := '{' expr+ '}'
-bool := True | False
+bool := 'true' | 'false'
+```
