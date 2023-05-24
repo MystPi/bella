@@ -19,6 +19,6 @@ call := primary ( '(' expr ( ',' expr )* ')' )?
 
 primary := Ident | Number | String | bool | block
 
-block := '{' expr+ '}'
+block := '(' expr+ ')'
 bool := 'true' | 'false'
 ```

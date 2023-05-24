@@ -2,10 +2,10 @@ let countdown =
   n ->
     if (n == 0)
       print('Liftoff!')
-    else {
+    else (
       print(n)
       countdown(n - 1 )
-    }
+    )
 in
 
 countdown(10)

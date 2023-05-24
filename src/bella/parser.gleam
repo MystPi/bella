@@ -196,14 +196,14 @@ fn parse_primary(tokens: Tokens) -> Parsed {
     [token.Ident(x), ..rest] -> Ok(#(Var(x), rest))
     [token.True, ..rest] -> Ok(#(Bool(True), rest))
     [token.False, ..rest] -> Ok(#(Bool(False), rest))
-    [token.LBrace, ..rest] -> parse_block(rest, [])
+    [token.LParen, ..rest] -> parse_block(rest, [])
     [tok, ..] -> error.unexpected("token: " <> token.token_to_string(tok))
   }
 }
 
 fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
   case tokens {
-    [token.RBrace, ..rest] -> {
+    [token.RParen, ..rest] -> {
       case acc {
         [] -> error.unexpected("end of block")
         _ -> Ok(#(Block(list.reverse(acc)), rest))
