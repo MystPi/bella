@@ -1,0 +1,6 @@
+let add =
+  ; Relative imports don't work currently
+  import('./examples/add.bella')
+in
+
+print(add(1, 2))

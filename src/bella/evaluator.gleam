@@ -5,6 +5,7 @@ import gleam/int
 import gleam/result.{try}
 import bella/error
 import bella/parser
+import bella/utils
 import bella/lexer
 import bella/lexer/token
 
@@ -42,8 +43,28 @@ fn evaluate(exprs: List(parser.Expr)) -> Evaluated {
         "to_string",
         Builtin(fn(x, scope) { Ok(#(String(to_string(x)), scope)) }),
       ),
+      #("import", Builtin(import_file)),
     ])
   eval_all(exprs, [], builtins)
+}
+
+fn import_file(path: DataType, scope: Scope) -> Evaluated {
+  // TODO: fix relative paths
+  case path {
+    String(path) ->
+      case utils.read_file(path) {
+        Ok(contents) ->
+          case evaluate_str(contents) {
+            Ok(#(result, _)) -> Ok(#(result, scope))
+            _ as error -> error
+          }
+        _ ->
+          error.runtime_error(
+            "I couldn't find the requested file to import: " <> path,
+          )
+      }
+    _ -> error.runtime_error("Import path must be a string")
+  }
 }
 
 fn eval_all(
