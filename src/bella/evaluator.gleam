@@ -110,7 +110,7 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
 fn get_var(name: String, scope: Scope) -> Evaluated {
   case map.get(scope, name) {
     Ok(x) -> Ok(#(x, scope))
-    _ -> error.runtime_error("Var not found: " <> name)
+    _ -> error.runtime_error("There is no binding for `" <> name <> "`")
   }
 }
 
@@ -263,7 +263,7 @@ fn eval_if(
         True -> eval(true_branch, scope)
         False -> eval(false_branch, scope)
       }
-    _ -> error.runtime_error("If only works on Booleans")
+    _ -> error.runtime_error("The condition for `if` must be a Boolean")
   }
 }
 
