@@ -98,7 +98,7 @@ fn lex_str(str: String, matchers: List(Matcher), tokens: Tokens) -> LexResult {
     _ ->
       case match(str, matchers) {
         Some(#(rest, tok)) -> lex_str(rest, matchers, [tok, ..tokens])
-        None -> Error(error.InvalidText(string.slice(str, 0, 5) <> "..."))
+        None -> error.invalid_text(string.slice(str, 0, 10) <> "...")
       }
   }
 }

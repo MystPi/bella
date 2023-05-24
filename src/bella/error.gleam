@@ -7,6 +7,10 @@ pub type Error {
   RuntimeError(String)
 }
 
+pub fn invalid_text(msg: String) {
+  gleam.Error(InvalidText(msg))
+}
+
 pub fn expected(msg: String) {
   gleam.Error(Expected(msg))
 }
