@@ -1,11 +1,13 @@
 <!-- > **Note**: this is the _target_ grammar; the implementation currently has some differences: -->
 
 ```
-expr := pipe | lambda | let_expr | if_expr
+expr := pipe | lambda | let_expr | if_expr | throw_expr | try_expr
 
 lambda := Ident '->' expr
 let_expr := 'let' ( Ident '=' expr 'in' )+ expr
 if_expr := 'if' '(' expr ')' expr 'else' expr
+throw_expr := 'throw' expr
+try_expr := 'try' expr 'else' expr
 
 pipe := logic_or ( '|>' logic_or ) *
 logic_or := logic_and ( 'or' logic_and )*

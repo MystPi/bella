@@ -1,0 +1,16 @@
+let divide =
+  a -> b ->
+    if (b == 0)
+      throw 'Cannot divide by 0'
+    else
+      a / b
+in (
+  print('Before try')
+
+  try
+    print(divide(1, 0))
+  else
+    msg -> print(msg)
+
+  print('After try')
+)

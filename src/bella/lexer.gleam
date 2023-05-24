@@ -24,6 +24,7 @@ pub fn lex(str: String) -> LexResult {
       #("let", token.Let),
       #("in", token.In),
       #("try", token.Try),
+      #("throw", token.Throw),
       #("if", token.If),
       #("else", token.Else),
       #("or", token.Or),

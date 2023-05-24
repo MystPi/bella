@@ -36,6 +36,7 @@ pub type Token {
   Let
   In
   Try
+  Throw
   If
   Else
   Or
@@ -74,6 +75,7 @@ pub fn token_to_string(token: Token) -> String {
     Let -> "let"
     In -> "in"
     Try -> "try"
+    Throw -> "throw"
     If -> "if"
     Else -> "else"
     Or -> "or"

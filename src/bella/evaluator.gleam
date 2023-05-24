@@ -104,6 +104,8 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
     parser.Let(name, value, body) -> eval_let(name, value, body, scope)
     parser.If(cond, true_branch, false_branch) ->
       eval_if(cond, true_branch, false_branch, scope)
+    parser.Throw(value) -> eval_throw(value, scope)
+    parser.Try(body, else) -> eval_try(body, else, scope)
   }
 }
 
@@ -264,6 +266,30 @@ fn eval_if(
         False -> eval(false_branch, scope)
       }
     _ -> error.runtime_error("The condition for `if` must be a Boolean")
+  }
+}
+
+fn eval_throw(value: parser.Expr, scope: Scope) -> Evaluated {
+  // TODO: allow any DataType to be thrown (requires new error type)
+  use #(value, _) <- try(eval(value, scope))
+  case value {
+    String(s) -> error.runtime_error(s)
+    _ -> error.runtime_error("Can only `throw` strings")
+  }
+}
+
+fn eval_try(body: parser.Expr, else: parser.Expr, scope: Scope) -> Evaluated {
+  case eval(body, scope) {
+    Ok(#(x, _)) -> Ok(#(x, scope))
+    Error(error.RuntimeError(msg)) -> {
+      case else {
+        parser.Lambda(..) -> {
+          use #(else, _) <- try(eval(else, scope))
+          eval_call(else, String(msg), scope)
+        }
+        _ -> eval(else, scope)
+      }
+    }
   }
 }
 

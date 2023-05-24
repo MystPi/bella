@@ -15,6 +15,8 @@ pub type Expr {
   Let(name: String, value: Expr, body: Expr)
   Call(callee: Expr, arg: Expr)
   If(cond: Expr, true_branch: Expr, false_branch: Expr)
+  Try(body: Expr, else: Expr)
+  Throw(value: Expr)
 }
 
 type Parsed =
@@ -51,6 +53,11 @@ fn parse_expr(tokens: Tokens) -> Parsed {
       use #(body, rest) <- try(parse_expr(rest))
       Ok(#(Lambda(n, body), rest))
     }
+    [token.Throw, ..rest] -> {
+      use #(value, rest) <- try(parse_expr(rest))
+      Ok(#(Throw(value), rest))
+    }
+    [token.Try, ..rest] -> parse_try(rest)
     _ -> parse_pipe(tokens)
   }
 }
@@ -102,6 +109,13 @@ fn parse_if(tokens: Tokens) -> Parsed {
   use rest <- expect(token.Else, rest, "`else` after true branch")
   use #(false_branch, rest) <- try(parse_expr(rest))
   Ok(#(If(condition, true_branch, false_branch), rest))
+}
+
+fn parse_try(tokens: Tokens) -> Parsed {
+  use #(body, rest) <- try(parse_expr(tokens))
+  use rest <- expect(token.Else, rest, "`else` after try body")
+  use #(else, rest) <- try(parse_expr(rest))
+  Ok(#(Try(body, else), rest))
 }
 
 fn parse_pipe(tokens: Tokens) -> Parsed {
