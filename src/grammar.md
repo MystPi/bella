@@ -1,6 +1,4 @@
-> **Note**: this is the _target_ grammar; the implementation currently has some differences:
-
-- `let` only allows one initializer
+<!-- > **Note**: this is the _target_ grammar; the implementation currently has some differences: -->
 
 ```
 expr := pipe | lambda | let_expr | if_expr

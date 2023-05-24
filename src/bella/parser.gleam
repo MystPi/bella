@@ -72,9 +72,23 @@ fn parse_let(tokens: Tokens) -> Parsed {
     [token.Ident(name), ..rest] -> {
       use rest <- expect(token.Eq, rest, "= after identifier")
       use #(value, rest) <- try(parse_expr(rest))
-      use rest <- expect(token.In, rest, "`in` after initializer")
+      finish_let(Let(name, value, _), rest)
+    }
+    _ -> error.expected("identifier after let")
+  }
+}
+
+fn finish_let(constructor: fn(Expr) -> Expr, tokens: Tokens) {
+  case tokens {
+    [token.Ident(name), ..rest] -> {
+      use rest <- expect(token.Eq, rest, "= after identifier")
+      use #(value, rest) <- try(parse_expr(rest))
+      use #(body, rest) <- try(finish_let(Let(name, value, _), rest))
+      Ok(#(constructor(body), rest))
+    }
+    [token.In, ..rest] -> {
       use #(body, rest) <- try(parse_expr(rest))
-      Ok(#(Let(name, value, body), rest))
+      Ok(#(constructor(body), rest))
     }
     _ -> error.expected("identifier after let")
   }
