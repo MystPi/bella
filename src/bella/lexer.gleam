@@ -59,7 +59,7 @@ pub fn lex(str: String) -> LexResult {
     #("^<", i(token.Less)),
     #("^!", i(token.Bang)),
     #(
-      "^'([^\\\\']|\\\\.)*'",
+      "^'([^\\\\']|\\\\.)*'|^\"([^\\\\\"]|\\\\.)*\"",
       fn(x) { token.String(string.slice(x, 1, string.length(x) - 2)) },
     ),
     #(
