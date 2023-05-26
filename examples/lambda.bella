@@ -1,0 +1,10 @@
+let
+  foo =
+    bar -> ->
+      { baz: bar }
+
+  foo42 =
+    foo(42)
+in
+
+print(foo42().baz)

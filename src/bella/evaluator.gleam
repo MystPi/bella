@@ -15,6 +15,7 @@ pub type DataType {
   Bool(Bool)
   Record(fields: map.Map(String, DataType))
   Lambda(param: String, body: parser.Expr, closure: Scope)
+  Lambda0(body: parser.Expr, closure: Scope)
   Builtin(func: fn(DataType, Scope) -> Evaluated)
 }
 
@@ -93,6 +94,7 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
     parser.String(x) -> Ok(#(String(x), scope))
     parser.Bool(x) -> Ok(#(Bool(x), scope))
     parser.Lambda(arg, body) -> Ok(#(Lambda(arg, body, scope), scope))
+    parser.Lambda0(body) -> Ok(#(Lambda0(body, scope), scope))
     parser.Var(x) -> get_var(x, scope)
     parser.Block(exprs) -> eval_all(exprs, [], scope)
     parser.Record(fields) -> eval_record(fields, map.new(), scope)
@@ -104,6 +106,10 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
       use #(callee, _) <- try(eval(callee, scope))
       use #(arg, _) <- try(eval(arg, scope))
       eval_call(callee, arg, scope)
+    }
+    parser.Call0(callee) -> {
+      use #(callee, _) <- try(eval(callee, scope))
+      eval_call0(callee, scope)
     }
     parser.Let(name, value, body) -> eval_let(name, value, body, scope)
     parser.If(cond, true_branch, false_branch) ->
@@ -274,6 +280,24 @@ fn eval_call(callee: DataType, arg: DataType, scope: Scope) -> Evaluated {
       Ok(#(result, scope))
     }
     Builtin(func) -> func(arg, scope)
+    Lambda0(..) ->
+      error.runtime_error("Lambda must be called without an argument")
+    _ -> error.runtime_error("Expression cannot be called")
+  }
+}
+
+fn eval_call0(calle: DataType, scope: Scope) -> Evaluated {
+  case calle {
+    Lambda0(body, closure) -> {
+      use #(result, _) <- try(eval(body, map.merge(scope, closure)))
+      Ok(#(result, scope))
+    }
+    Lambda(n, ..) ->
+      error.runtime_error(
+        "Lambda must be called with an argument, `" <> n <> "`",
+      )
+    Builtin(..) ->
+      error.runtime_error("Builtin must be called with an argument")
     _ -> error.runtime_error("Expression cannot be called")
   }
 }
@@ -345,6 +369,7 @@ fn to_string(x: DataType) -> String {
       }
     Record(f) -> "#record<" <> int.to_string(map.size(f)) <> ">"
     Lambda(param, ..) -> "#lambda<" <> param <> ">"
+    Lambda0(..) -> "#lambda<>"
     Builtin(..) -> "#builtin"
   }
 }

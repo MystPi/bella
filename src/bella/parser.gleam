@@ -14,8 +14,10 @@ pub type Expr {
   BinOp(operator: Token, left: Expr, right: Expr)
   Unary(operator: Token, value: Expr)
   Lambda(param: String, body: Expr)
+  Lambda0(body: Expr)
   Let(name: String, value: Expr, body: Expr)
   Call(callee: Expr, arg: Expr)
+  Call0(callee: Expr)
   If(cond: Expr, true_branch: Expr, false_branch: Expr)
   Try(body: Expr, else: Expr)
   Throw(value: Expr)
@@ -54,6 +56,10 @@ fn parse_expr(tokens: Tokens) -> Parsed {
     [token.Ident(n), token.Arrow, ..rest] -> {
       use #(body, rest) <- try(parse_expr(rest))
       Ok(#(Lambda(n, body), rest))
+    }
+    [token.Arrow, ..rest] -> {
+      use #(body, rest) <- try(parse_expr(rest))
+      Ok(#(Lambda0(body), rest))
     }
     [token.Throw, ..rest] -> {
       use #(value, rest) <- try(parse_expr(rest))
@@ -169,6 +175,9 @@ fn parse_call(tokens: Tokens) -> Parsed {
 
 fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
   case tokens {
+    [token.LParen, token.RParen, ..rest] -> {
+      finish_call(Call0(callee), rest)
+    }
     [token.LParen, ..rest] -> {
       use #(arg, rest) <- try(parse_expr(rest))
       finish_call_args(Call(callee, arg), rest)
