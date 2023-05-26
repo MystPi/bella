@@ -13,6 +13,7 @@ pub type DataType {
   Number(Float)
   String(String)
   Bool(Bool)
+  Record(fields: map.Map(String, DataType))
   Lambda(param: String, body: parser.Expr, closure: Scope)
   Builtin(func: fn(DataType, Scope) -> Evaluated)
 }
@@ -26,6 +27,7 @@ type Evaluated =
 pub fn evaluate_str(str: String) -> Evaluated {
   use tokens <- try(lexer.lex(str))
   use parsed <- try(parser.parse(tokens))
+  io.debug(parsed)
   evaluate(parsed)
 }
 
@@ -94,6 +96,9 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
     parser.Lambda(arg, body) -> Ok(#(Lambda(arg, body, scope), scope))
     parser.Var(x) -> get_var(x, scope)
     parser.Block(exprs) -> eval_all(exprs, [], scope)
+    parser.Record(fields) -> eval_record(fields, map.new(), scope)
+    parser.RecordAccess(record, field) ->
+      eval_record_access(record, field, scope)
     parser.BinOp(op, left, right) -> eval_binop(op, left, right, scope)
     parser.Unary(op, value) -> eval_unary(op, value, scope)
     parser.Call(callee, arg) -> {
@@ -113,6 +118,39 @@ fn get_var(name: String, scope: Scope) -> Evaluated {
   case map.get(scope, name) {
     Ok(x) -> Ok(#(x, scope))
     _ -> error.runtime_error("There is no binding for `" <> name <> "`")
+  }
+}
+
+fn eval_record(
+  fields: List(#(String, parser.Expr)),
+  result: map.Map(String, DataType),
+  scope: Scope,
+) -> Evaluated {
+  case fields {
+    [] -> Ok(#(Record(result), scope))
+    [#(name, value), ..rest] -> {
+      use #(value, _) <- try(eval(value, scope))
+      eval_record(rest, map.insert(result, name, value), scope)
+    }
+  }
+}
+
+fn eval_record_access(
+  record: parser.Expr,
+  field: String,
+  scope: Scope,
+) -> Evaluated {
+  use #(record, _) <- try(eval(record, scope))
+  case record {
+    Record(fields) ->
+      case map.get(fields, field) {
+        Ok(x) -> Ok(#(x, scope))
+        _ -> error.runtime_error("Record has no `" <> field <> "` field")
+      }
+    _ ->
+      error.runtime_error(
+        "Expression has no `" <> field <> "` field because it is not a record",
+      )
   }
 }
 
@@ -306,6 +344,7 @@ fn to_string(x: DataType) -> String {
         True -> "true"
         False -> "false"
       }
+    Record(f) -> "#record<" <> int.to_string(map.size(f)) <> ">"
     Lambda(param, ..) -> "#lambda<" <> param <> ">"
     Builtin(..) -> "#builtin"
   }

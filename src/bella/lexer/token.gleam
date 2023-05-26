@@ -13,8 +13,10 @@ pub type Token {
   LBrace
   RBrace
   Eq
+  Colon
   Arrow
   Comma
+  Dot
 
   Plus
   Minus
@@ -55,8 +57,10 @@ pub fn token_to_string(token: Token) -> String {
     LBrace -> "{"
     RBrace -> "}"
     Eq -> "="
+    Colon -> ":"
     Arrow -> "->"
     Comma -> ","
+    Dot -> "."
     Plus -> "+"
     Minus -> "-"
     Star -> "*"

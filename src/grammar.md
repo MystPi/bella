@@ -17,10 +17,12 @@ comparison := term ( ( '>' | '>=' | '<' | '<=' ) term )*
 term := factor ( ( '+' | '-' ) factor )*
 factor := unary ( ( '/' | '*' ) unary )*
 unary := ( '-' | '!' ) unary | call
-call := primary ( '(' expr ( ',' expr )* ')' )?
+call := primary ( '(' expr ( ',' expr )* ')' | '.' Ident )*
 
-primary := Ident | Number | String | bool | block
+primary := Ident | Number | String | bool | block | record
 
+record := '{' ( record_item ( ',' Ident ':' expr )* )? '}'
+record_item := Ident ( ':' expr )?
 block := '(' expr+ ')'
 bool := 'true' | 'false'
 ```
