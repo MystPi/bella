@@ -10,11 +10,13 @@ let
     , type: 'Programming language'
     , repository
     , tags:
-      { fun: true
+      { fun: false
       , simple: true
-      , useful: false
       }
     }
+
+  bella =
+    package + { tags: package.tags + { fun: true } }
 in
 
-package.repository.repo |> print
+bella.tags.fun |> print

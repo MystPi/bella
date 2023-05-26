@@ -172,9 +172,10 @@ fn eval_binop(
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a +. b), scope))
         String(a), String(b) -> Ok(#(String(a <> b), scope))
+        Record(a), Record(b) -> Ok(#(Record(map.merge(a, b)), scope))
         _, _ ->
           error.runtime_error(
-            "Operands of + must be numbers or strings and be the same type",
+            "Operands of + must be numbers, strings, or records and be the same type",
           )
       }
     }
