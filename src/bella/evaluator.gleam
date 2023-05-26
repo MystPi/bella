@@ -27,7 +27,6 @@ type Evaluated =
 pub fn evaluate_str(str: String) -> Evaluated {
   use tokens <- try(lexer.lex(str))
   use parsed <- try(parser.parse(tokens))
-  io.debug(parsed)
   evaluate(parsed)
 }
 
