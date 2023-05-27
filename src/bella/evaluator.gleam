@@ -325,6 +325,8 @@ fn eval_try(body: parser.Expr, else: parser.Expr, scope: Scope) -> Evaluated {
   }
 }
 
+// UTILS .......................................................................
+
 fn to_string(x: DataType) -> String {
   case x {
     Number(n) ->

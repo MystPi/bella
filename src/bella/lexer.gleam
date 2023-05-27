@@ -88,17 +88,6 @@ pub fn lex(str: String) -> LexResult {
   |> Ok
 }
 
-fn i(x) {
-  fn(_) { x }
-}
-
-fn to_float(x: String) -> Float {
-  case int.parse(x) {
-    Ok(n) -> int.to_float(n)
-    _ -> result.unwrap(float.parse(x), 0.0)
-  }
-}
-
 fn lex_str(str: String, matchers: List(Matcher), tokens: Tokens) -> LexResult {
   case str {
     "" -> Ok([token.Eof, ..tokens])
@@ -123,5 +112,18 @@ fn match_regex(matcher: Matcher, str: String) -> Matched {
     [regex.Match(content, _), ..] ->
       Some(#(string.drop_left(str, string.length(content)), to_tok(content)))
     [] -> None
+  }
+}
+
+// UTILS .......................................................................
+
+fn i(x) {
+  fn(_) { x }
+}
+
+fn to_float(x: String) -> Float {
+  case int.parse(x) {
+    Ok(n) -> int.to_float(n)
+    _ -> result.unwrap(float.parse(x), 0.0)
   }
 }

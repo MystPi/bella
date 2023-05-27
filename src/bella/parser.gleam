@@ -74,18 +74,6 @@ fn parse_expr(tokens: Tokens) -> Parsed {
   }
 }
 
-fn expect(
-  tok: Token,
-  tokens: Tokens,
-  msg: String,
-  callback: fn(Tokens) -> Parsed,
-) -> Parsed {
-  case tokens {
-    [head, ..tail] if head == tok -> callback(tail)
-    _ -> error.expected(msg)
-  }
-}
-
 fn parse_let(tokens: Tokens) -> Parsed {
   case tokens {
     [token.Ident(name), ..rest] -> {
@@ -294,5 +282,19 @@ fn finish_record(tokens: Tokens, fields: List(#(String, Expr))) -> Parsed {
     }
     [token.RBrace, ..rest] -> Ok(#(Record(fields), rest))
     _ -> error.expected(", or }")
+  }
+}
+
+// UTILS .......................................................................
+
+fn expect(
+  tok: Token,
+  tokens: Tokens,
+  msg: String,
+  callback: fn(Tokens) -> Parsed,
+) -> Parsed {
+  case tokens {
+    [head, ..tail] if head == tok -> callback(tail)
+    _ -> error.expected(msg)
   }
 }
