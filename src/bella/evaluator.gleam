@@ -9,6 +9,8 @@ import bella/utils
 import bella/lexer
 import bella/lexer/token
 
+// TYPES .......................................................................
+
 pub type DataType {
   Number(Float)
   String(String)
@@ -25,6 +27,8 @@ type Scope =
 type Evaluated =
   Result(#(DataType, Scope), error.Error)
 
+// EVALUATOR ...................................................................
+
 pub fn evaluate_str(str: String) -> Evaluated {
   use tokens <- try(lexer.lex(str))
   use parsed <- try(parser.parse(tokens))
@@ -32,41 +36,7 @@ pub fn evaluate_str(str: String) -> Evaluated {
 }
 
 fn evaluate(exprs: List(parser.Expr)) -> Evaluated {
-  let builtins =
-    map.from_list([
-      #(
-        "print",
-        Builtin(fn(x, scope) {
-          io.println(to_string(x))
-          Ok(#(x, scope))
-        }),
-      ),
-      #(
-        "to_string",
-        Builtin(fn(x, scope) { Ok(#(String(to_string(x)), scope)) }),
-      ),
-      #("import", Builtin(import_file)),
-    ])
-  eval_all(exprs, [], builtins)
-}
-
-fn import_file(path: DataType, scope: Scope) -> Evaluated {
-  // TODO: fix relative paths
-  case path {
-    String(path) ->
-      case utils.read_file(path) {
-        Ok(contents) ->
-          case evaluate_str(contents) {
-            Ok(#(result, _)) -> Ok(#(result, scope))
-            _ as error -> error
-          }
-        _ ->
-          error.runtime_error(
-            "I couldn't find the requested file to import: " <> path,
-          )
-      }
-    _ -> error.runtime_error("Import path must be a string")
-  }
+  eval_all(exprs, [], map.from_list(builtins))
 }
 
 fn eval_all(
@@ -372,5 +342,41 @@ fn to_string(x: DataType) -> String {
     Lambda(param, ..) -> "#lambda<" <> param <> ">"
     Lambda0(..) -> "#lambda<>"
     Builtin(..) -> "#builtin"
+  }
+}
+
+// BUILTINS ....................................................................
+
+const builtins = [
+  #("print", Builtin(print_)),
+  #("to_string", Builtin(to_string_)),
+  #("import", Builtin(import_file_)),
+]
+
+fn print_(x, scope) {
+  io.println(to_string(x))
+  Ok(#(x, scope))
+}
+
+fn to_string_(x, scope) {
+  Ok(#(String(to_string(x)), scope))
+}
+
+fn import_file_(path, scope) {
+  // TODO: fix relative paths
+  case path {
+    String(path) ->
+      case utils.read_file(path) {
+        Ok(contents) ->
+          case evaluate_str(contents) {
+            Ok(#(result, _)) -> Ok(#(result, scope))
+            _ as error -> error
+          }
+        _ ->
+          error.runtime_error(
+            "I couldn't find the requested file to import: " <> path,
+          )
+      }
+    _ -> error.runtime_error("Import path must be a string")
   }
 }

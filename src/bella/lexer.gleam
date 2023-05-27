@@ -9,6 +9,8 @@ import gleam/option.{None, Option, Some}
 import bella/error
 import bella/lexer/token.{Token, Tokens}
 
+// TYPES .......................................................................
+
 type Matcher =
   #(String, fn(String) -> Token)
 
@@ -17,6 +19,8 @@ type Matched =
 
 type LexResult =
   Result(Tokens, error.Error)
+
+// LEXER .......................................................................
 
 pub fn lex(str: String) -> LexResult {
   let keywords =

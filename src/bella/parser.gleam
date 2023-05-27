@@ -3,6 +3,8 @@ import gleam/result.{try}
 import bella/error
 import bella/lexer/token.{Token, Tokens}
 
+// TYPES .......................................................................
+
 pub type Expr {
   Var(String)
   String(String)
@@ -28,6 +30,8 @@ type Parsed =
 
 type Parser =
   fn(Tokens) -> Parsed
+
+// PARSER ......................................................................
 
 pub fn parse(tokens: Tokens) -> Result(List(Expr), error.Error) {
   use result <- try(parse_exprs(tokens, []))
