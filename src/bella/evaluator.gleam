@@ -345,12 +345,24 @@ fn to_string(x: DataType) -> String {
   }
 }
 
+fn to_type(x: DataType) -> String {
+  case x {
+    Number(..) -> "number"
+    String(..) -> "string"
+    Bool(..) -> "boolean"
+    Record(..) -> "record"
+    Lambda(..) | Lambda0(..) -> "lambda"
+    Builtin(..) -> "builtin"
+  }
+}
+
 // BUILTINS ....................................................................
 
 const builtins = [
   #("print", Builtin(print_)),
   #("to_string", Builtin(to_string_)),
   #("import", Builtin(import_file_)),
+  #("typeof", Builtin(typeof_)),
 ]
 
 fn print_(x, scope) {
@@ -379,4 +391,8 @@ fn import_file_(path, scope) {
       }
     _ -> error.runtime_error("Import path must be a string")
   }
+}
+
+fn typeof_(x, scope) {
+  Ok(#(String(to_type(x)), scope))
 }
