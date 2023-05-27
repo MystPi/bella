@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { Ok, Error, toList } from './gleam.mjs'
+import { Ok, Error, toList } from './gleam.mjs';
 
 export function readFile(path) {
   try {
@@ -10,5 +10,5 @@ export function readFile(path) {
 }
 
 export function getArgs() {
-  return toList(process.argv.slice(2));
+  return toList(globalThis.Deno?.args ?? process.argv.slice(2));
 }
