@@ -21,7 +21,7 @@ call := primary ( '(' arguments? ')' | '.' Ident )*
 
 primary := Ident | Number | String | bool | block | record
 
-record := '{' ( record_item ( ',' Ident ':' expr )* )? '}'
+record := '{' ( record_item ( ',' record_item )* )? '}'
 record_item := Ident ( ':' expr )?
 block := '(' expr+ ')'
 bool := 'true' | 'false'
