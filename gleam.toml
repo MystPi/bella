@@ -7,3 +7,9 @@ repository = { type = "github", user = "MystPi", repo = "bella" }
 
 [dependencies]
 gleam_stdlib = "~> 0.29"
+
+[javascript]
+runtime = "node"
+
+[javascript.deno]
+allow_all = true
