@@ -1,7 +1,7 @@
 import gleam/float
 
 pub type Position {
-  Position(from: Int, to: Int, line: Int)
+  Position(from: #(Int, Int), to: #(Int, Int))
 }
 
 pub type Token =
