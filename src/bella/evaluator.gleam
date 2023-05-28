@@ -143,9 +143,12 @@ fn eval_binop(
         Number(a), Number(b) -> Ok(#(Number(a +. b), scope))
         String(a), String(b) -> Ok(#(String(a <> b), scope))
         Record(a), Record(b) -> Ok(#(Record(map.merge(a, b)), scope))
-        _, _ ->
-          error.runtime_error(
-            "Operands of + must be numbers, strings, or records and be the same type",
+        a, b ->
+          op_error(
+            "+",
+            "numbers, strings, or records and be the same type",
+            a,
+            b,
           )
       }
     }
@@ -158,55 +161,55 @@ fn eval_binop(
     token.Minus -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a -. b), scope))
-        _, _ -> error.runtime_error("Operands of - must be numbers")
+        a, b -> op_error("-", "numbers", a, b)
       }
     }
     token.Star -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a *. b), scope))
-        _, _ -> error.runtime_error("Operands of * must be numbers")
+        a, b -> op_error("*", "numbers", a, b)
       }
     }
     token.Slash -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a /. b), scope))
-        _, _ -> error.runtime_error("Operands of / must be numbers")
+        a, b -> op_error("/", "numbers", a, b)
       }
     }
     token.Less -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <. b), scope))
-        _, _ -> error.runtime_error("Operands of < must be numbers")
+        a, b -> op_error("<", "numbers", a, b)
       }
     }
     token.Greater -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >. b), scope))
-        _, _ -> error.runtime_error("Operands of > must be numbers")
+        a, b -> op_error(">", "numbers", a, b)
       }
     }
     token.LessEq -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <=. b), scope))
-        _, _ -> error.runtime_error("Operands of <= must be numbers")
+        a, b -> op_error("<=", "numbers", a, b)
       }
     }
     token.GreaterEq -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >=. b), scope))
-        _, _ -> error.runtime_error("Operands of >= must be numbers")
+        a, b -> op_error(">=", "numbers", a, b)
       }
     }
     token.And -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a && b), scope))
-        _, _ -> error.runtime_error("Operands of `and` must be Booleans")
+        a, b -> op_error("`and`", "Booleans", a, b)
       }
     }
     token.Or -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a || b), scope))
-        _, _ -> error.runtime_error("Operands of `and` must be Booleans")
+        a, b -> op_error("`or`", "Booleans", a, b)
       }
     }
     token.RPipe -> {
@@ -222,14 +225,20 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
       use #(value, _) <- try(eval(value, scope))
       case value {
         Number(x) -> Ok(#(Number(0.0 -. x), scope))
-        _ -> error.runtime_error("Unary - applies to Numbers")
+        x ->
+          error.runtime_error(
+            "Unary - applies to numbers; instead got a " <> to_type(x),
+          )
       }
     }
     token.Bang -> {
       use #(value, _) <- try(eval(value, scope))
       case value {
         Bool(x) -> Ok(#(Bool(!x), scope))
-        _ -> error.runtime_error("Unary ! applies to Booleans")
+        x ->
+          error.runtime_error(
+            "Unary ! applies to Booleans; instead got a " <> to_type(x),
+          )
       }
     }
     // Make the compiler happy :)
@@ -326,6 +335,14 @@ fn eval_try(body: parser.Expr, else: parser.Expr, scope: Scope) -> Evaluated {
 }
 
 // UTILS .......................................................................
+
+fn op_error(op: String, must_be: String, a: DataType, b: DataType) -> Evaluated {
+  error.runtime_error(
+    "Operands of " <> op <> " must be " <> must_be <> "; instead got a " <> to_type(
+      a,
+    ) <> " and a " <> to_type(b),
+  )
+}
 
 fn to_string(x: DataType) -> String {
   case x {
