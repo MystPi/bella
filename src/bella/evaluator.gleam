@@ -1,31 +1,15 @@
 import gleam/map
-import gleam/io
-import gleam/float
-import gleam/int
 import gleam/result.{try}
 import bella/error
 import bella/parser
 import bella/utils
 import bella/lexer
 import bella/lexer/token
-
-// TYPES .......................................................................
-
-pub type DataType {
-  Number(Float)
-  String(String)
-  Bool(Bool)
-  Record(fields: map.Map(String, DataType))
-  Lambda(param: String, body: parser.Expr, closure: Scope)
-  Lambda0(body: parser.Expr, closure: Scope)
-  Builtin(func: fn(DataType, Scope) -> Evaluated)
+import bella/evaluator/builtins
+import bella/evaluator/types.{
+  Bool, Builtin, DataType, Evaluated, Lambda, Lambda0, Number, Record, Scope,
+  String,
 }
-
-type Scope =
-  map.Map(String, DataType)
-
-type Evaluated =
-  Result(#(DataType, Scope), error.Error)
 
 // EVALUATOR ...................................................................
 
@@ -36,6 +20,7 @@ pub fn evaluate_str(str: String) -> Evaluated {
 }
 
 fn evaluate(exprs: List(parser.Expr)) -> Evaluated {
+  let builtins = [#("import", Builtin(import_file)), ..builtins.builtins]
   eval_all(exprs, [], map.from_list(builtins))
 }
 
@@ -227,7 +212,7 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
         Number(x) -> Ok(#(Number(0.0 -. x), scope))
         x ->
           error.runtime_error(
-            "Unary - applies to numbers; instead got a " <> to_type(x),
+            "Unary - applies to numbers; instead got a " <> types.to_type(x),
           )
       }
     }
@@ -237,7 +222,7 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
         Bool(x) -> Ok(#(Bool(!x), scope))
         x ->
           error.runtime_error(
-            "Unary ! applies to Booleans; instead got a " <> to_type(x),
+            "Unary ! applies to Booleans; instead got a " <> types.to_type(x),
           )
       }
     }
@@ -338,62 +323,13 @@ fn eval_try(body: parser.Expr, else: parser.Expr, scope: Scope) -> Evaluated {
 
 fn op_error(op: String, must_be: String, a: DataType, b: DataType) -> Evaluated {
   error.runtime_error(
-    "Operands of " <> op <> " must be " <> must_be <> "; instead got a " <> to_type(
+    "Operands of " <> op <> " must be " <> must_be <> "; instead got a " <> types.to_type(
       a,
-    ) <> " and a " <> to_type(b),
+    ) <> " and a " <> types.to_type(b),
   )
 }
 
-fn to_string(x: DataType) -> String {
-  case x {
-    Number(n) ->
-      case float.floor(n) == n {
-        True -> int.to_string(float.truncate(n))
-        False -> float.to_string(n)
-      }
-    String(s) -> s
-    Bool(b) ->
-      case b {
-        True -> "true"
-        False -> "false"
-      }
-    Record(f) -> "#record<" <> int.to_string(map.size(f)) <> ">"
-    Lambda(param, ..) -> "#lambda<" <> param <> ">"
-    Lambda0(..) -> "#lambda<>"
-    Builtin(..) -> "#builtin"
-  }
-}
-
-fn to_type(x: DataType) -> String {
-  case x {
-    Number(..) -> "number"
-    String(..) -> "string"
-    Bool(..) -> "boolean"
-    Record(..) -> "record"
-    Lambda(..) | Lambda0(..) -> "lambda"
-    Builtin(..) -> "builtin"
-  }
-}
-
-// BUILTINS ....................................................................
-
-const builtins = [
-  #("print", Builtin(print_)),
-  #("to_string", Builtin(to_string_)),
-  #("import", Builtin(import_file_)),
-  #("typeof", Builtin(typeof_)),
-]
-
-fn print_(x, scope) {
-  io.println(to_string(x))
-  Ok(#(x, scope))
-}
-
-fn to_string_(x, scope) {
-  Ok(#(String(to_string(x)), scope))
-}
-
-fn import_file_(path, scope) {
+fn import_file(path, scope) {
   // TODO: fix relative paths
   case path {
     String(path) ->
@@ -401,7 +337,7 @@ fn import_file_(path, scope) {
         Ok(contents) ->
           case evaluate_str(contents) {
             Ok(#(result, _)) -> Ok(#(result, scope))
-            _ as error -> error
+            error -> error
           }
         _ ->
           error.runtime_error(
@@ -410,8 +346,4 @@ fn import_file_(path, scope) {
       }
     _ -> error.runtime_error("Import path must be a string")
   }
-}
-
-fn typeof_(x, scope) {
-  Ok(#(String(to_type(x)), scope))
 }
