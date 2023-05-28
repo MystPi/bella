@@ -1,11 +1,19 @@
 import gleam/float
 
+pub type Position {
+  Position(from: Int, to: Int, line: Int)
+}
+
+pub type Token =
+  #(TokenType, Position)
+
 pub type Tokens =
   List(Token)
 
-pub type Token {
+pub type TokenType {
   Eof
   WhiteSpace
+  Newline
   Comment
 
   LParen
@@ -47,10 +55,11 @@ pub type Token {
   False
 }
 
-pub fn token_to_string(token: Token) -> String {
+pub fn token_to_string(token: TokenType) -> String {
   case token {
     Eof -> "EOF"
     WhiteSpace -> "Whitespace"
+    Newline -> "Newline"
     Comment -> "Comment"
     LParen -> "("
     RParen -> ")"

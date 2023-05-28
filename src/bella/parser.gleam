@@ -1,7 +1,7 @@
 import gleam/list
 import gleam/result.{try}
 import bella/error
-import bella/lexer/token.{Token, Tokens}
+import bella/lexer/token.{Token, TokenType, Tokens}
 
 // TYPES .......................................................................
 
@@ -45,7 +45,7 @@ fn parse_exprs(
   exprs: List(Expr),
 ) -> Result(List(Expr), error.Error) {
   case tokens {
-    [token.Eof] -> Ok(exprs)
+    [#(token.Eof, _)] -> Ok(exprs)
     _ -> {
       use #(expr, rest) <- try(parse_expr(tokens))
       parse_exprs(rest, [expr, ..exprs])
@@ -55,28 +55,28 @@ fn parse_exprs(
 
 fn parse_expr(tokens: Tokens) -> Parsed {
   case tokens {
-    [token.If, ..rest] -> parse_if(rest)
-    [token.Let, ..rest] -> parse_let(rest)
-    [token.Ident(n), token.Arrow, ..rest] -> {
+    [#(token.If, _), ..rest] -> parse_if(rest)
+    [#(token.Let, _), ..rest] -> parse_let(rest)
+    [#(token.Ident(n), _), #(token.Arrow, _), ..rest] -> {
       use #(body, rest) <- try(parse_expr(rest))
       Ok(#(Lambda(n, body), rest))
     }
-    [token.Arrow, ..rest] -> {
+    [#(token.Arrow, _), ..rest] -> {
       use #(body, rest) <- try(parse_expr(rest))
       Ok(#(Lambda0(body), rest))
     }
-    [token.Throw, ..rest] -> {
+    [#(token.Throw, _), ..rest] -> {
       use #(value, rest) <- try(parse_expr(rest))
       Ok(#(Throw(value), rest))
     }
-    [token.Try, ..rest] -> parse_try(rest)
+    [#(token.Try, _), ..rest] -> parse_try(rest)
     _ -> parse_pipe(tokens)
   }
 }
 
 fn parse_let(tokens: Tokens) -> Parsed {
   case tokens {
-    [token.Ident(name), ..rest] -> {
+    [#(token.Ident(name), _), ..rest] -> {
       use rest <- expect(token.Eq, rest, "= after identifier")
       use #(value, rest) <- try(parse_expr(rest))
       finish_let(Let(name, value, _), rest)
@@ -87,13 +87,13 @@ fn parse_let(tokens: Tokens) -> Parsed {
 
 fn finish_let(constructor: fn(Expr) -> Expr, tokens: Tokens) {
   case tokens {
-    [token.Ident(name), ..rest] -> {
+    [#(token.Ident(name), _), ..rest] -> {
       use rest <- expect(token.Eq, rest, "= after identifier")
       use #(value, rest) <- try(parse_expr(rest))
       use #(body, rest) <- try(finish_let(Let(name, value, _), rest))
       Ok(#(constructor(body), rest))
     }
-    [token.In, ..rest] -> {
+    [#(token.In, _), ..rest] -> {
       use #(body, rest) <- try(parse_expr(rest))
       Ok(#(constructor(body), rest))
     }
@@ -152,7 +152,7 @@ fn parse_factor(tokens: Tokens) -> Parsed {
 
 fn parse_unary(tokens: Tokens) -> Parsed {
   case tokens {
-    [token.Minus as op, ..rest] | [token.Bang as op, ..rest] -> {
+    [#(token.Minus, _) as op, ..rest] | [#(token.Bang, _) as op, ..rest] -> {
       use #(expr, rest) <- try(parse_unary(rest))
       Ok(#(Unary(op, expr), rest))
     }
@@ -167,16 +167,16 @@ fn parse_call(tokens: Tokens) -> Parsed {
 
 fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
   case tokens {
-    [token.LParen, token.RParen, ..rest] -> {
+    [#(token.LParen, _), #(token.RParen, _), ..rest] -> {
       finish_call(Call0(callee), rest)
     }
-    [token.LParen, ..rest] -> {
+    [#(token.LParen, _), ..rest] -> {
       use #(arg, rest) <- try(parse_expr(rest))
       finish_call_args(Call(callee, arg), rest)
     }
-    [token.Dot, ..rest] -> {
+    [#(token.Dot, _), ..rest] -> {
       case rest {
-        [token.Ident(name), ..rest] -> {
+        [#(token.Ident(name), _), ..rest] -> {
           finish_call(RecordAccess(callee, name), rest)
         }
         _ -> error.expected("identifier after .")
@@ -188,28 +188,28 @@ fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
 
 fn finish_call_args(callee: Expr, tokens: Tokens) -> Parsed {
   case tokens {
-    [token.Comma, ..rest] -> {
+    [#(token.Comma, _), ..rest] -> {
       use #(arg, rest) <- try(parse_expr(rest))
       finish_call_args(Call(callee, arg), rest)
     }
-    [token.RParen, ..rest] -> finish_call(callee, rest)
+    [#(token.RParen, _), ..rest] -> finish_call(callee, rest)
     _ -> error.expected(", or )")
   }
 }
 
-fn parse_binop(ops: Tokens, subrule: Parser, tokens: Tokens) -> Parsed {
+fn parse_binop(ops: List(TokenType), subrule: Parser, tokens: Tokens) -> Parsed {
   use #(left, rest) <- try(subrule(tokens))
   finish_binop(left, ops, subrule, rest)
 }
 
 fn finish_binop(
   left: Expr,
-  ops: Tokens,
+  ops: List(TokenType),
   subrule: Parser,
   tokens: Tokens,
 ) -> Parsed {
   let [op, ..rest] = tokens
-  case list.contains(ops, op) {
+  case list.contains(ops, op.0) {
     True -> {
       use #(right, rest) <- try(subrule(rest))
       finish_binop(BinOp(op, left, right), ops, subrule, rest)
@@ -220,20 +220,20 @@ fn finish_binop(
 
 fn parse_primary(tokens: Tokens) -> Parsed {
   case tokens {
-    [token.Number(x), ..rest] -> Ok(#(Number(x), rest))
-    [token.String(x), ..rest] -> Ok(#(String(x), rest))
-    [token.Ident(x), ..rest] -> Ok(#(Var(x), rest))
-    [token.True, ..rest] -> Ok(#(Bool(True), rest))
-    [token.False, ..rest] -> Ok(#(Bool(False), rest))
-    [token.LParen, ..rest] -> parse_block(rest, [])
-    [token.LBrace, ..rest] -> parse_record(rest)
-    [tok, ..] -> error.unexpected("token: " <> token.token_to_string(tok))
+    [#(token.Number(x), _), ..rest] -> Ok(#(Number(x), rest))
+    [#(token.String(x), _), ..rest] -> Ok(#(String(x), rest))
+    [#(token.Ident(x), _), ..rest] -> Ok(#(Var(x), rest))
+    [#(token.True, _), ..rest] -> Ok(#(Bool(True), rest))
+    [#(token.False, _), ..rest] -> Ok(#(Bool(False), rest))
+    [#(token.LParen, _), ..rest] -> parse_block(rest, [])
+    [#(token.LBrace, _), ..rest] -> parse_record(rest)
+    [#(tok, _), ..] -> error.unexpected("token: " <> token.token_to_string(tok))
   }
 }
 
 fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
   case tokens {
-    [token.RParen, ..rest] -> {
+    [#(token.RParen, _), ..rest] -> {
       case acc {
         [] -> error.unexpected("end of block")
         _ -> Ok(#(Block(list.reverse(acc)), rest))
@@ -248,11 +248,11 @@ fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
 
 fn parse_record_item(tokens: Tokens) {
   case tokens {
-    [token.Ident(name), token.Colon, ..rest] -> {
+    [#(token.Ident(name), _), #(token.Colon, _), ..rest] -> {
       use #(value, rest) <- try(parse_expr(rest))
       Ok(#(#(name, value), rest))
     }
-    [token.Ident(name), ..rest] -> {
+    [#(token.Ident(name), _), ..rest] -> {
       Ok(#(#(name, Var(name)), rest))
     }
     _ -> error.expected("identifier")
@@ -261,7 +261,7 @@ fn parse_record_item(tokens: Tokens) {
 
 fn parse_record(tokens: Tokens) -> Parsed {
   case tokens {
-    [token.RBrace, ..rest] -> {
+    [#(token.RBrace, _), ..rest] -> {
       Ok(#(Record([]), rest))
     }
     _ -> {
@@ -273,14 +273,14 @@ fn parse_record(tokens: Tokens) -> Parsed {
 
 fn finish_record(tokens: Tokens, fields: List(#(String, Expr))) -> Parsed {
   case tokens {
-    [token.Comma, ..rest] -> {
+    [#(token.Comma, _), ..rest] -> {
       use #(#(name, value), rest) <- try(parse_record_item(rest))
       case list.any(fields, fn(f) { f.0 == name }) {
         True -> error.unexpected("duplicate record field: " <> name)
         False -> finish_record(rest, [#(name, value), ..fields])
       }
     }
-    [token.RBrace, ..rest] -> Ok(#(Record(fields), rest))
+    [#(token.RBrace, _), ..rest] -> Ok(#(Record(fields), rest))
     _ -> error.expected(", or }")
   }
 }
@@ -288,13 +288,13 @@ fn finish_record(tokens: Tokens, fields: List(#(String, Expr))) -> Parsed {
 // UTILS .......................................................................
 
 fn expect(
-  tok: Token,
+  tok: TokenType,
   tokens: Tokens,
   msg: String,
   callback: fn(Tokens) -> Parsed,
 ) -> Parsed {
   case tokens {
-    [head, ..tail] if head == tok -> callback(tail)
+    [#(head, _), ..tail] if head == tok -> callback(tail)
     _ -> error.expected(msg)
   }
 }

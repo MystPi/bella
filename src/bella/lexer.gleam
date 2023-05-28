@@ -1,21 +1,21 @@
 import gleam/list
 import gleam/string
 import gleam/regex
-import gleam/result
+import gleam/result.{try}
 import gleam/map
 import gleam/int
 import gleam/float
 import gleam/option.{None, Option, Some}
 import bella/error
-import bella/lexer/token.{Token, Tokens}
+import bella/lexer/token.{TokenType, Tokens}
 
 // TYPES .......................................................................
 
 type Matcher =
-  #(String, fn(String) -> Token)
+  #(String, fn(String) -> TokenType)
 
 type Matched =
-  Option(#(String, Token))
+  Option(#(String, TokenType, Int))
 
 type LexResult =
   Result(Tokens, error.Error)
@@ -39,7 +39,8 @@ pub fn lex(str: String) -> LexResult {
     |> map.from_list
 
   let matchers = [
-    #("^\\s+", i(token.WhiteSpace)),
+    #("^[\\t ]+", i(token.WhiteSpace)),
+    #("^\\n", i(token.Newline)),
     #("^;.*", i(token.Comment)),
     #("^\\(", i(token.LParen)),
     #("^\\)", i(token.RParen)),
@@ -78,22 +79,38 @@ pub fn lex(str: String) -> LexResult {
     #("^\\d+(\\.\\d+)?", fn(x) { token.Number(to_float(x)) }),
   ]
 
-  let ignored = [token.WhiteSpace, token.Comment]
-
-  use tokens <- result.try(lex_str(str, matchers, []))
+  use tokens <- try(lex_str(str, matchers, [], 0, 1))
 
   tokens
-  |> list.filter(fn(x) { !list.contains(ignored, x) })
   |> list.reverse
   |> Ok
 }
 
-fn lex_str(str: String, matchers: List(Matcher), tokens: Tokens) -> LexResult {
+fn lex_str(
+  str: String,
+  matchers: List(Matcher),
+  tokens: Tokens,
+  pos: Int,
+  line: Int,
+) -> LexResult {
   case str {
-    "" -> Ok([token.Eof, ..tokens])
+    "" -> Ok([#(token.Eof, token.Position(pos, pos, line)), ..tokens])
     _ ->
       case match(str, matchers) {
-        Some(#(rest, tok)) -> lex_str(rest, matchers, [tok, ..tokens])
+        Some(#(rest, tok_type, len)) ->
+          lex_str(
+            rest,
+            matchers,
+            case tok_type {
+              token.WhiteSpace | token.Newline | token.Comment -> tokens
+              _ -> [#(tok_type, token.Position(pos, pos + len, line)), ..tokens]
+            },
+            pos + len,
+            case tok_type {
+              token.Newline -> line + 1
+              _ -> line
+            },
+          )
         None -> error.invalid_text(string.slice(str, 0, 10) <> "...")
       }
   }
@@ -110,7 +127,11 @@ fn match_regex(matcher: Matcher, str: String) -> Matched {
 
   case regex.scan(re, str) {
     [regex.Match(content, _), ..] ->
-      Some(#(string.drop_left(str, string.length(content)), to_tok(content)))
+      Some(#(
+        string.drop_left(str, string.length(content)),
+        to_tok(content),
+        string.length(content),
+      ))
     [] -> None
   }
 }

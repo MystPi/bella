@@ -123,7 +123,7 @@ fn eval_binop(
   use #(left, _) <- try(eval(left, scope))
   use #(right, _) <- try(eval(right, scope))
   case op {
-    token.Plus -> {
+    #(token.Plus, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a +. b), scope))
         String(a), String(b) -> Ok(#(String(a <> b), scope))
@@ -137,67 +137,67 @@ fn eval_binop(
           )
       }
     }
-    token.EqEq -> {
+    #(token.EqEq, _) -> {
       Ok(#(Bool(left == right), scope))
     }
-    token.Neq -> {
+    #(token.Neq, _) -> {
       Ok(#(Bool(left != right), scope))
     }
-    token.Minus -> {
+    #(token.Minus, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a -. b), scope))
         a, b -> op_error("-", "numbers", a, b)
       }
     }
-    token.Star -> {
+    #(token.Star, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a *. b), scope))
         a, b -> op_error("*", "numbers", a, b)
       }
     }
-    token.Slash -> {
+    #(token.Slash, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a /. b), scope))
         a, b -> op_error("/", "numbers", a, b)
       }
     }
-    token.Less -> {
+    #(token.Less, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <. b), scope))
         a, b -> op_error("<", "numbers", a, b)
       }
     }
-    token.Greater -> {
+    #(token.Greater, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >. b), scope))
         a, b -> op_error(">", "numbers", a, b)
       }
     }
-    token.LessEq -> {
+    #(token.LessEq, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <=. b), scope))
         a, b -> op_error("<=", "numbers", a, b)
       }
     }
-    token.GreaterEq -> {
+    #(token.GreaterEq, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >=. b), scope))
         a, b -> op_error(">=", "numbers", a, b)
       }
     }
-    token.And -> {
+    #(token.And, _) -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a && b), scope))
         a, b -> op_error("`and`", "Booleans", a, b)
       }
     }
-    token.Or -> {
+    #(token.Or, _) -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a || b), scope))
         a, b -> op_error("`or`", "Booleans", a, b)
       }
     }
-    token.RPipe -> {
+    #(token.RPipe, _) -> {
       eval_call(right, left, scope)
     }
     _ -> error.runtime_error("BinOp not implemented")
@@ -206,7 +206,7 @@ fn eval_binop(
 
 fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
   case op {
-    token.Minus -> {
+    #(token.Minus, _) -> {
       use #(value, _) <- try(eval(value, scope))
       case value {
         Number(x) -> Ok(#(Number(0.0 -. x), scope))
@@ -216,7 +216,7 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
           )
       }
     }
-    token.Bang -> {
+    #(token.Bang, _) -> {
       use #(value, _) <- try(eval(value, scope))
       case value {
         Bool(x) -> Ok(#(Bool(!x), scope))
