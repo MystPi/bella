@@ -28,8 +28,8 @@ Creating a Bella executable requires Deno.
 gleam clean && gleam build
 
 # Compile
-deno compile --unstable --allow-all ./build/dev/javascript/bella/main.mjs
+deno compile --unstable --allow-all ./build/dev/javascript/bella/main.mjs -o ./build/bella
 
 # Run
-./bella ./examples/countdown.bella
+./build/bella ./examples/countdown.bella
 ```

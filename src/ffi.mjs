@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { Ok, Error, toList } from './gleam.mjs';
 
 export function readFile(path) {
@@ -7,6 +7,28 @@ export function readFile(path) {
   } catch (e) {
     return new Error(e.message);
   }
+}
+
+export function writeFile(path, content) {
+  try {
+    writeFileSync(path, content);
+    return new Ok(path);
+  } catch (e) {
+    return new Error(e.message);
+  }
+}
+
+export function createDirectory(path) {
+  try {
+    mkdirSync(path, { recursive: true });
+    return new Ok(path);
+  } catch (e) {
+    return new Error(e.message);
+  }
+}
+
+export function fileExists(path) {
+  return existsSync(path);
 }
 
 export function getArgs() {
