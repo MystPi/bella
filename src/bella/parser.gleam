@@ -45,7 +45,10 @@ fn parse_exprs(
   exprs: List(Expr),
 ) -> Result(List(Expr), error.Error) {
   case tokens {
-    [#(token.Eof, _)] -> Ok(exprs)
+    [#(token.Eof, pos)] -> case exprs {
+      [] -> error.syntax_error("Unexpected end of file", pos)
+      _ -> Ok(exprs)
+    }
     _ -> {
       use #(expr, rest) <- try(parse_expr(tokens))
       parse_exprs(rest, [expr, ..exprs])
@@ -235,12 +238,11 @@ fn parse_primary(tokens: Tokens) -> Parsed {
 
 fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
   case tokens {
-    [#(token.RParen, pos), ..rest] -> {
+    [#(token.RParen, pos), ..rest] ->
       case acc {
         [] -> error.syntax_error("I expected an expression", pos)
         _ -> Ok(#(Block(list.reverse(acc)), rest))
       }
-    }
     _ -> {
       use #(expr, rest) <- try(parse_expr(tokens))
       parse_block(rest, [expr, ..acc])
