@@ -1,6 +1,10 @@
 <!-- > **Note**: this is the _target_ grammar; the implementation currently has some differences: -->
 
 ```
+module := import* expr+
+
+import := 'import' Ident ( '/' Ident )* ( 'as' Ident )?
+
 expr := pipe | lambda | let_expr | if_expr | throw_expr | try_expr
 
 lambda := Ident? '->' expr

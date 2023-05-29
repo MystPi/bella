@@ -24,7 +24,7 @@ pub fn main() {
 
 fn run_project() {
   case utils.file_exists("bella.json") {
-    True -> run_file("./src/main.bella")
+    True -> run_file("src/main.bella")
     False -> io.println_error("Not inside a project")
   }
 }

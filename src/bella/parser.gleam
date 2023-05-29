@@ -25,6 +25,13 @@ pub type Expr {
   Throw(value: Expr)
 }
 
+pub type Module {
+  Module(imports: List(Import), body: List(Expr))
+}
+
+type Import =
+  #(String, String)
+
 type Parsed =
   Result(#(Expr, Tokens), error.Error)
 
@@ -33,11 +40,49 @@ type Parser =
 
 // PARSER ......................................................................
 
-pub fn parse(tokens: Tokens) -> Result(List(Expr), error.Error) {
-  use result <- try(parse_exprs(tokens, []))
-  result
-  |> list.reverse
-  |> Ok
+pub fn parse(tokens: Tokens) -> Result(Module, error.Error) {
+  parse_module(tokens)
+}
+
+fn parse_module(tokens: Tokens) -> Result(Module, error.Error) {
+  use #(imports, rest) <- try(parse_imports(tokens, []))
+  use exprs <- try(parse_exprs(rest, []))
+  Ok(Module(imports: imports, body: exprs))
+}
+
+fn parse_imports(
+  tokens: Tokens,
+  imports: List(Import),
+) -> Result(#(List(Import), Tokens), error.Error) {
+  case tokens {
+    [#(token.Import, _), #(token.Ident(name), _), ..rest] -> {
+      use #(i, rest) <- try(finish_import(rest, name, name))
+      case rest {
+        [#(token.As, _), #(token.Ident(alias), _), ..rest] ->
+          parse_imports(rest, [#(alias, i.1), ..imports])
+        [#(token.As, _), #(_, pos), ..] ->
+          error.syntax_error("I expected an identifier", pos)
+        _ -> parse_imports(rest, [i, ..imports])
+      }
+    }
+    [#(token.Import, _), #(_, pos), ..] ->
+      error.syntax_error("I expected an identifier", pos)
+    _ -> Ok(#(list.reverse(imports), tokens))
+  }
+}
+
+fn finish_import(
+  tokens: Tokens,
+  acc: String,
+  name: String,
+) -> Result(#(Import, Tokens), error.Error) {
+  case tokens {
+    [#(token.Slash, _), #(token.Ident(name), _), ..rest] ->
+      finish_import(rest, acc <> "/" <> name, name)
+    [#(token.Slash, _), #(_, pos), ..] ->
+      error.syntax_error("I expected an identifier", pos)
+    _ -> Ok(#(#(name, acc), tokens))
+  }
 }
 
 fn parse_exprs(
@@ -45,10 +90,11 @@ fn parse_exprs(
   exprs: List(Expr),
 ) -> Result(List(Expr), error.Error) {
   case tokens {
-    [#(token.Eof, pos)] -> case exprs {
-      [] -> error.syntax_error("Unexpected end of file", pos)
-      _ -> Ok(exprs)
-    }
+    [#(token.Eof, pos)] ->
+      case exprs {
+        [] -> error.syntax_error("Unexpected end of file", pos)
+        _ -> Ok(list.reverse(exprs))
+      }
     _ -> {
       use #(expr, rest) <- try(parse_expr(tokens))
       parse_exprs(rest, [expr, ..exprs])

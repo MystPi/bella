@@ -33,6 +33,8 @@ pub fn lex(str: String) -> LexResult {
       #("else", token.Else),
       #("or", token.Or),
       #("and", token.And),
+      #("import", token.Import),
+      #("as", token.As),
       #("true", token.True),
       #("false", token.False),
     ]

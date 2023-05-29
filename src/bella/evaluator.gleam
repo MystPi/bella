@@ -1,4 +1,5 @@
 import gleam/map
+import gleam/list
 import gleam/result.{try}
 import bella/error
 import bella/parser
@@ -19,9 +20,21 @@ pub fn evaluate_str(str: String) -> Evaluated {
   evaluate(parsed)
 }
 
-fn evaluate(exprs: List(parser.Expr)) -> Evaluated {
-  let builtins = [#("import", Builtin(import_file)), ..builtins.builtins]
-  eval_all(exprs, [], map.from_list(builtins))
+fn evaluate(mod: parser.Module) -> Evaluated {
+  let builtins = [
+    #("import", Builtin(import_file_builtin)),
+    ..builtins.builtins
+  ]
+  use imported <- try({
+    use #(alias, path) <- list.try_map(mod.imports)
+    use #(result, _) <- try(import_file("src/" <> path <> ".bella"))
+    Ok(#(alias, result))
+  })
+  eval_all(
+    mod.body,
+    [],
+    map.merge(map.from_list(builtins), map.from_list(imported)),
+  )
 }
 
 fn eval_all(
@@ -329,21 +342,23 @@ fn op_error(op: String, must_be: String, a: DataType, b: DataType) -> Evaluated 
   )
 }
 
-fn import_file(path, scope) {
-  // TODO: fix relative paths
-  case path {
-    String(path) ->
-      case utils.read_file(path) {
-        Ok(contents) ->
-          case evaluate_str(contents) {
-            Ok(#(result, _)) -> Ok(#(result, scope))
-            Error(err) -> error.imported_error(err, contents, path)
-          }
-        _ ->
-          error.runtime_error(
-            "I couldn't find the requested file to import: " <> path,
-          )
+fn import_file(path: String) -> Evaluated {
+  case utils.read_file(path) {
+    Ok(contents) ->
+      case evaluate_str(contents) {
+        Ok(#(result, _)) -> Ok(#(result, map.new()))
+        Error(err) -> error.imported_error(err, contents, path)
       }
+    _ ->
+      error.runtime_error(
+        "I couldn't find the requested file to import: " <> path,
+      )
+  }
+}
+
+fn import_file_builtin(path: DataType, _: Scope) -> Evaluated {
+  case path {
+    String(path) -> import_file(path)
     _ -> error.runtime_error("Import path must be a string")
   }
 }
