@@ -44,3 +44,4 @@ jobs:
           file: ./build/bella-${{ matrix.target }}*
           tag: nightly
           overwrite: true
+          body: "These executables are updated to the latest commit."
