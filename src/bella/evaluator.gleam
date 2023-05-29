@@ -337,7 +337,7 @@ fn import_file(path, scope) {
         Ok(contents) ->
           case evaluate_str(contents) {
             Ok(#(result, _)) -> Ok(#(result, scope))
-            error -> error
+            Error(err) -> error.imported_error(err, contents, path)
           }
         _ ->
           error.runtime_error(

@@ -12,29 +12,14 @@ pub fn main() {
 
 fn run_file(path: String) -> Nil {
   case utils.read_file(path) {
-    Ok(contents) -> run_str(contents)
+    Ok(contents) -> run_str(contents, path)
     _ -> io.println_error("I couldn't find the requested file: " <> path)
   }
 }
 
-fn run_str(str: String) -> Nil {
+fn run_str(str: String, path: String) -> Nil {
   case evaluator.evaluate_str(str) {
-    Error(err) -> print_error(err)
+    Error(err) -> error.print_error(err, str, path)
     _ -> Nil
   }
-}
-
-fn print_error(err: error.Error) -> Nil {
-  io.println_error(
-    "-----------------------------------------------
-There was a problem while running your program.
-Here are the details:
------------------------------------------------",
-  )
-  io.println_error(case err {
-    error.Unexpected(msg) -> "I found an unexpected " <> msg
-    error.Expected(msg) -> "I expected an " <> msg
-    error.InvalidText(msg) -> "I don't know what this means: " <> msg
-    error.RuntimeError(msg) -> msg
-  })
 }

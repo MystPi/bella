@@ -81,7 +81,8 @@ fn parse_let(tokens: Tokens) -> Parsed {
       use #(value, rest) <- try(parse_expr(rest))
       finish_let(Let(name, value, _), rest)
     }
-    _ -> error.expected("identifier after let")
+    [#(_, pos), ..] ->
+      error.syntax_error("I expected an identifier after let", pos)
   }
 }
 
@@ -97,7 +98,7 @@ fn finish_let(constructor: fn(Expr) -> Expr, tokens: Tokens) {
       use #(body, rest) <- try(parse_expr(rest))
       Ok(#(constructor(body), rest))
     }
-    _ -> error.expected("identifier after let")
+    [#(_, pos), ..] -> error.syntax_error("I expected another initializer", pos)
   }
 }
 
@@ -179,7 +180,8 @@ fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
         [#(token.Ident(name), _), ..rest] -> {
           finish_call(RecordAccess(callee, name), rest)
         }
-        _ -> error.expected("identifier after .")
+        [#(_, pos), ..] ->
+          error.syntax_error("I expected an identifier after .", pos)
       }
     }
     _ -> Ok(#(callee, tokens))
@@ -193,7 +195,7 @@ fn finish_call_args(callee: Expr, tokens: Tokens) -> Parsed {
       finish_call_args(Call(callee, arg), rest)
     }
     [#(token.RParen, _), ..rest] -> finish_call(callee, rest)
-    _ -> error.expected(", or )")
+    [#(_, pos), ..] -> error.syntax_error("I expected a , or )", pos)
   }
 }
 
@@ -227,15 +229,15 @@ fn parse_primary(tokens: Tokens) -> Parsed {
     [#(token.False, _), ..rest] -> Ok(#(Bool(False), rest))
     [#(token.LParen, _), ..rest] -> parse_block(rest, [])
     [#(token.LBrace, _), ..rest] -> parse_record(rest)
-    [#(tok, _), ..] -> error.unexpected("token: " <> token.token_to_string(tok))
+    [#(_, pos), ..] -> error.syntax_error("I wasn't expecting this", pos)
   }
 }
 
 fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
   case tokens {
-    [#(token.RParen, _), ..rest] -> {
+    [#(token.RParen, pos), ..rest] -> {
       case acc {
-        [] -> error.unexpected("end of block")
+        [] -> error.syntax_error("I expected an expression", pos)
         _ -> Ok(#(Block(list.reverse(acc)), rest))
       }
     }
@@ -248,14 +250,14 @@ fn parse_block(tokens: Tokens, acc: List(Expr)) -> Parsed {
 
 fn parse_record_item(tokens: Tokens) {
   case tokens {
-    [#(token.Ident(name), _), #(token.Colon, _), ..rest] -> {
+    [#(token.Ident(name), pos), #(token.Colon, _), ..rest] -> {
       use #(value, rest) <- try(parse_expr(rest))
-      Ok(#(#(name, value), rest))
+      Ok(#(#(name, value, pos), rest))
     }
-    [#(token.Ident(name), _), ..rest] -> {
-      Ok(#(#(name, Var(name)), rest))
+    [#(token.Ident(name), pos), ..rest] -> {
+      Ok(#(#(name, Var(name), pos), rest))
     }
-    _ -> error.expected("identifier")
+    [#(_, pos), ..] -> error.syntax_error("I expected an identifier", pos)
   }
 }
 
@@ -265,7 +267,7 @@ fn parse_record(tokens: Tokens) -> Parsed {
       Ok(#(Record([]), rest))
     }
     _ -> {
-      use #(#(name, value), rest) <- try(parse_record_item(tokens))
+      use #(#(name, value, _), rest) <- try(parse_record_item(tokens))
       finish_record(rest, [#(name, value)])
     }
   }
@@ -274,14 +276,14 @@ fn parse_record(tokens: Tokens) -> Parsed {
 fn finish_record(tokens: Tokens, fields: List(#(String, Expr))) -> Parsed {
   case tokens {
     [#(token.Comma, _), ..rest] -> {
-      use #(#(name, value), rest) <- try(parse_record_item(rest))
+      use #(#(name, value, pos), rest) <- try(parse_record_item(rest))
       case list.any(fields, fn(f) { f.0 == name }) {
-        True -> error.unexpected("duplicate record field: " <> name)
+        True -> error.syntax_error("Duplicate record field", pos)
         False -> finish_record(rest, [#(name, value), ..fields])
       }
     }
     [#(token.RBrace, _), ..rest] -> Ok(#(Record(fields), rest))
-    _ -> error.expected(", or }")
+    [#(_, pos), ..] -> error.syntax_error("I expected a , or }", pos)
   }
 }
 
@@ -295,6 +297,6 @@ fn expect(
 ) -> Parsed {
   case tokens {
     [#(head, _), ..tail] if head == tok -> callback(tail)
-    _ -> error.expected(msg)
+    [#(_, pos), ..] -> error.syntax_error("I expected a " <> msg, pos)
   }
 }

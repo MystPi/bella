@@ -79,7 +79,7 @@ pub fn lex(str: String) -> LexResult {
     #("^\\d+(\\.\\d+)?", fn(x) { token.Number(to_float(x)) }),
   ]
 
-  use tokens <- try(lex_str(str, matchers, [], 1, 0))
+  use tokens <- try(lex_str(str, matchers, [], 1, 1))
 
   tokens
   |> list.reverse
@@ -114,11 +114,15 @@ fn lex_str(
               _ -> line
             },
             case tok_type {
-              token.Newline -> 0
+              token.Newline -> 1
               _ -> col + len
             },
           )
-        None -> error.invalid_text(string.slice(str, 0, 10) <> "...")
+        None ->
+          error.syntax_error(
+            "I don't understand what this means",
+            token.Position(#(line, col), #(line, col + 1)),
+          )
       }
   }
 }
