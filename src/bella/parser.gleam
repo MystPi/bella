@@ -128,19 +128,19 @@ fn parse_let(tokens: Tokens) -> Parsed {
     [#(token.Ident(name), _), ..rest] -> {
       use rest <- expect(token.Eq, rest, "= after identifier")
       use #(value, rest) <- try(parse_expr(rest))
-      finish_let(Let(name, value, _), rest)
+      finish_let(rest, Let(name, value, _))
     }
     [#(_, pos), ..] ->
       error.syntax_error("I expected an identifier after let", pos)
   }
 }
 
-fn finish_let(constructor: fn(Expr) -> Expr, tokens: Tokens) {
+fn finish_let(tokens: Tokens, constructor: fn(Expr) -> Expr) {
   case tokens {
     [#(token.Ident(name), _), ..rest] -> {
       use rest <- expect(token.Eq, rest, "= after identifier")
       use #(value, rest) <- try(parse_expr(rest))
-      use #(body, rest) <- try(finish_let(Let(name, value, _), rest))
+      use #(body, rest) <- try(finish_let(rest, Let(name, value, _)))
       Ok(#(constructor(body), rest))
     }
     [#(token.In, _), ..rest] -> {
@@ -169,35 +169,35 @@ fn parse_try(tokens: Tokens) -> Parsed {
 }
 
 fn parse_pipe(tokens: Tokens) -> Parsed {
-  parse_binop([token.RPipe], parse_logic_or, tokens)
+  parse_binop(tokens, [token.RPipe], parse_logic_or)
 }
 
 fn parse_logic_or(tokens: Tokens) -> Parsed {
-  parse_binop([token.Or], parse_logic_and, tokens)
+  parse_binop(tokens, [token.Or], parse_logic_and)
 }
 
 fn parse_logic_and(tokens: Tokens) -> Parsed {
-  parse_binop([token.And], parse_equality, tokens)
+  parse_binop(tokens, [token.And], parse_equality)
 }
 
 fn parse_equality(tokens: Tokens) -> Parsed {
-  parse_binop([token.EqEq, token.Neq], parse_comparison, tokens)
+  parse_binop(tokens, [token.EqEq, token.Neq], parse_comparison)
 }
 
 fn parse_comparison(tokens: Tokens) -> Parsed {
   parse_binop(
+    tokens,
     [token.Greater, token.GreaterEq, token.Less, token.LessEq],
     parse_term,
-    tokens,
   )
 }
 
 fn parse_term(tokens: Tokens) -> Parsed {
-  parse_binop([token.Plus, token.Minus], parse_factor, tokens)
+  parse_binop(tokens, [token.Plus, token.Minus], parse_factor)
 }
 
 fn parse_factor(tokens: Tokens) -> Parsed {
-  parse_binop([token.Star, token.Slash], parse_unary, tokens)
+  parse_binop(tokens, [token.Star, token.Slash], parse_unary)
 }
 
 fn parse_unary(tokens: Tokens) -> Parsed {
@@ -212,22 +212,22 @@ fn parse_unary(tokens: Tokens) -> Parsed {
 
 fn parse_call(tokens: Tokens) -> Parsed {
   use #(expr, rest) <- try(parse_primary(tokens))
-  finish_call(expr, rest)
+  finish_call(rest, expr)
 }
 
-fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
+fn finish_call(tokens: Tokens, callee: Expr) -> Parsed {
   case tokens {
     [#(token.LParen, _), #(token.RParen, _), ..rest] -> {
-      finish_call(Call0(callee), rest)
+      finish_call(rest, Call0(callee))
     }
     [#(token.LParen, _), ..rest] -> {
       use #(arg, rest) <- try(parse_expr(rest))
-      finish_call_args(Call(callee, arg), rest)
+      finish_call_args(rest, Call(callee, arg))
     }
     [#(token.Dot, _), ..rest] -> {
       case rest {
         [#(token.Ident(name), _), ..rest] -> {
-          finish_call(RecordAccess(callee, name), rest)
+          finish_call(rest, RecordAccess(callee, name))
         }
         [#(_, pos), ..] ->
           error.syntax_error("I expected an identifier after .", pos)
@@ -237,33 +237,33 @@ fn finish_call(callee: Expr, tokens: Tokens) -> Parsed {
   }
 }
 
-fn finish_call_args(callee: Expr, tokens: Tokens) -> Parsed {
+fn finish_call_args(tokens: Tokens, callee: Expr) -> Parsed {
   case tokens {
     [#(token.Comma, _), ..rest] -> {
       use #(arg, rest) <- try(parse_expr(rest))
-      finish_call_args(Call(callee, arg), rest)
+      finish_call_args(rest, Call(callee, arg))
     }
-    [#(token.RParen, _), ..rest] -> finish_call(callee, rest)
+    [#(token.RParen, _), ..rest] -> finish_call(rest, callee)
     [#(_, pos), ..] -> error.syntax_error("I expected a , or )", pos)
   }
 }
 
-fn parse_binop(ops: List(TokenType), subrule: Parser, tokens: Tokens) -> Parsed {
+fn parse_binop(tokens: Tokens, ops: List(TokenType), subrule: Parser) -> Parsed {
   use #(left, rest) <- try(subrule(tokens))
-  finish_binop(left, ops, subrule, rest)
+  finish_binop(rest, left, ops, subrule)
 }
 
 fn finish_binop(
+  tokens: Tokens,
   left: Expr,
   ops: List(TokenType),
   subrule: Parser,
-  tokens: Tokens,
 ) -> Parsed {
   let [op, ..rest] = tokens
   case list.contains(ops, op.0) {
     True -> {
       use #(right, rest) <- try(subrule(rest))
-      finish_binop(BinOp(op, left, right), ops, subrule, rest)
+      finish_binop(rest, BinOp(op, left, right), ops, subrule)
     }
     False -> Ok(#(left, tokens))
   }
