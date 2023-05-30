@@ -24,18 +24,13 @@ Bella is a simple functional programming language, written in [Gleam](https://gl
 You will need:
 
 - Gleam
-- Node.js/Deno _(This is Gleam's target runtime)_
+- Deno _(This is Gleam's target runtime)_
 - This repo
 
 ```sh
-# Using Node.js
 gleam run ./examples/hello_world.bella
-
-# Using Deno
-gleam run --runtime deno ./examples/hello_world.bella
 ```
-
-Creating a Bella executable requires Deno.
+You can also compile an executable:
 
 ```sh
 # Build

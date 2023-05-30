@@ -9,9 +9,10 @@ repository = { type = "github", user = "MystPi", repo = "bella" }
 gleam_stdlib = "~> 0.29"
 hug = "~> 0.1"
 gleam_community_ansi = "~> 1.1"
+gleam_json = "~> 0.5"
 
 [javascript]
-runtime = "node"
+runtime = "deno"
 
 [javascript.deno]
 allow_all = true
