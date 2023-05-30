@@ -1,6 +1,6 @@
 import { Ok, Error, toList } from './gleam.mjs';
 
-export function readFile(path) {
+export function readFile(path: string) {
   try {
     return new Ok(Deno.readTextFileSync(path));
   } catch (e) {
@@ -8,7 +8,7 @@ export function readFile(path) {
   }
 }
 
-export function writeFile(path, content) {
+export function writeFile(path: string, content: string) {
   try {
     Deno.writeTextFileSync(path, content);
     return new Ok(path);
@@ -17,7 +17,7 @@ export function writeFile(path, content) {
   }
 }
 
-export function createDirectory(path) {
+export function createDirectory(path: string) {
   try {
     Deno.mkdirSync(path, { recursive: true });
     return new Ok(path);

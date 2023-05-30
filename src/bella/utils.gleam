@@ -1,11 +1,11 @@
 pub external fn read_file(String) -> Result(String, String) =
-  "../ffi.mjs" "readFile"
+  "../ffi.ts" "readFile"
 
 pub external fn write_file(String, String) -> Result(String, String) =
-  "../ffi.mjs" "writeFile"
+  "../ffi.ts" "writeFile"
 
 pub external fn create_directory(String) -> Result(String, String) =
-  "../ffi.mjs" "createDirectory"
+  "../ffi.ts" "createDirectory"
 
 pub external fn get_args() -> List(String) =
-  "../ffi.mjs" "getArgs"
+  "../ffi.ts" "getArgs"

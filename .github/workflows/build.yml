@@ -2,15 +2,21 @@ name: Build executable
 
 on:
   push:
-    branches: ["main"]
+    branches: ['main']
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
-        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc, x86_64-apple-darwin, aarch64-apple-darwin]
+        target:
+          [
+            x86_64-unknown-linux-gnu,
+            x86_64-pc-windows-msvc,
+            x86_64-apple-darwin,
+            aarch64-apple-darwin,
+          ]
 
     steps:
       - name: Setup repo
@@ -20,22 +26,22 @@ jobs:
         uses: denoland/setup-deno@v1.1.2
         with:
           deno-version: v1.x
-          
+
       - name: Setup Gleam
         uses: erlef/setup-beam@v1
         with:
           otp-version: false
           gleam-version: '0.29.0'
-      
+
       - name: Build project
         run: gleam clean && gleam build
 
       - name: Compile executable
-        run: deno compile --unstable --allow-all --target ${{ matrix.target }} ./build/dev/javascript/bella/main.mjs -o ./build/bella-${{ matrix.target }}
-        
+        run: deno compile --unstable --allow-all --target ${{ matrix.target }} ./build/dev/javascript/bella/main.ts -o ./build/bella-${{ matrix.target }}
+
       - name: List files
         run: ls build
-        
+
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
@@ -44,4 +50,4 @@ jobs:
           file: ./build/bella-${{ matrix.target }}*
           tag: nightly
           overwrite: true
-          body: "These executables are updated to the latest commit."
+          body: 'These executables are updated to the latest commit.'
