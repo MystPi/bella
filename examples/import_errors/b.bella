@@ -1,1 +1,1 @@
-import('examples/import_errors/c.bella')
+import_('examples/import_errors/c.bella')

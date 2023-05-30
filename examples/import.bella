@@ -1,6 +1,5 @@
 let math =
-  ; Relative imports don't work currently
-  import('./examples/math.bella')
+  import_('./examples/math.bella')
 in
 
 print(math.add(1, 2))

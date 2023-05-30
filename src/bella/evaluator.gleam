@@ -22,7 +22,7 @@ pub fn evaluate_str(str: String) -> Evaluated {
 
 fn evaluate(mod: parser.Module) -> Evaluated {
   let builtins = [
-    #("import", Builtin(import_file_builtin)),
+    #("import_", Builtin(import_file_builtin)),
     ..builtins.builtins
   ]
   use imported <- try({
