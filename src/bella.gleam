@@ -13,9 +13,9 @@ const usage = "Usage:
 
 pub fn main() {
   case utils.get_args(), get_project() {
+    _, #(True, Error(msg)) -> error(msg)
     ["create", name, ..], _ -> create_project(name)
     ["run", ..], #(True, Ok(project)) -> run_project(project.name)
-    ["run", ..], #(True, Error(msg)) -> error(msg)
     [path, ..], _ -> run_file(path)
     _, _ -> io.println(usage)
   }
