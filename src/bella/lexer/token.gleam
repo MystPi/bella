@@ -1,45 +1,37 @@
-pub type Position {
-  Position(from: #(Int, Int), to: #(Int, Int))
-}
-
-pub type Token =
-  #(TokenType, Position)
+import nibble/lexer
 
 pub type Tokens =
-  List(Token)
+  List(lexer.Token(TokenT))
 
-pub type TokenType {
-  Eof
-  WhiteSpace
-  Newline
-  Comment
+pub type TokenT {
+  Ident(String)
+  Number(Float)
+  String(String)
 
   LParen
   RParen
   LBrace
   RBrace
-  Eq
-  Colon
-  Arrow
-  Comma
-  Dot
 
   Plus
   Minus
   Star
   Slash
+
+  Less
+  Greater
+  LessEq
+  GreaterEq
   EqEq
   Neq
-  GreaterEq
-  LessEq
-  RPipe
-  Greater
-  Less
-  Bang
 
-  Ident(String)
-  String(String)
-  Number(Float)
+  Eq
+  Colon
+  Arrow
+  Comma
+  Dot
+  RPipe
+  Bang
 
   Let
   In
@@ -53,4 +45,6 @@ pub type TokenType {
   As
   True
   False
+
+  Comment(String)
 }

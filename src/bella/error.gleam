@@ -2,20 +2,19 @@ import gleam
 import gleam/io
 import hug
 import gleam_community/ansi
-import bella/lexer/token
 
 // TYPES .......................................................................
 
 pub type Error {
-  SyntaxError(String, token.Position)
+  SyntaxError(String, #(Int, Int), #(Int, Int))
   RuntimeError(String)
   ImportedError(Error, String, String)
 }
 
 // CONSTRUCTORS ................................................................
 
-pub fn syntax_error(msg: String, pos: token.Position) {
-  gleam.Error(SyntaxError(msg, pos))
+pub fn syntax_error(msg: String, from: #(Int, Int), to: #(Int, Int)) {
+  gleam.Error(SyntaxError(msg, from, to))
 }
 
 pub fn runtime_error(msg: String) {
@@ -42,12 +41,12 @@ pub fn print_error(err: Error, source: String, path: String) -> Nil {
 
 pub fn print_error_message(err: Error, source: String, path: String) -> Nil {
   case err {
-    SyntaxError(msg, pos) ->
+    SyntaxError(msg, start, end) ->
       ansi.red("✕ ") <> hug.error(
         source,
         in: path,
-        from: pos.from,
-        to: pos.to,
+        from: start,
+        to: end,
         message: "invalid syntax",
         hint: ansi.blue("? ") <> msg,
       )

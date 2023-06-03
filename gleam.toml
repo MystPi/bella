@@ -10,6 +10,7 @@ gleam_stdlib = "~> 0.29"
 hug = "~> 0.1"
 gleam_community_ansi = "~> 1.1"
 gleam_json = "~> 0.5"
+nibble = "~> 1.0.0-rc.2"
 
 [javascript]
 runtime = "deno"

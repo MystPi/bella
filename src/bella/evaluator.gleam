@@ -1,5 +1,6 @@
 import gleam/map
 import gleam/list
+import gleam/io
 import gleam/result.{try}
 import bella/error
 import bella/parser
@@ -16,8 +17,9 @@ import bella/evaluator/types.{
 
 pub fn evaluate_str(str: String) -> Evaluated {
   use tokens <- try(lexer.lex(str))
-  use parsed <- try(parser.parse(tokens))
-  evaluate(parsed)
+  io.debug(tokens)
+  parser.parse(tokens)
+  Ok(#(Number(1.0), map.new()))
 }
 
 fn evaluate(mod: parser.Module) -> Evaluated {
@@ -128,7 +130,7 @@ fn eval_record_access(
 }
 
 fn eval_binop(
-  op: token.Token,
+  op: token.TokenT,
   left: parser.Expr,
   right: parser.Expr,
   scope: Scope,
@@ -136,7 +138,7 @@ fn eval_binop(
   use #(left, _) <- try(eval(left, scope))
   use #(right, _) <- try(eval(right, scope))
   case op {
-    #(token.Plus, _) -> {
+    token.Plus -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a +. b), scope))
         String(a), String(b) -> Ok(#(String(a <> b), scope))
@@ -150,76 +152,76 @@ fn eval_binop(
           )
       }
     }
-    #(token.EqEq, _) -> {
+    token.EqEq -> {
       Ok(#(Bool(left == right), scope))
     }
-    #(token.Neq, _) -> {
+    token.Neq -> {
       Ok(#(Bool(left != right), scope))
     }
-    #(token.Minus, _) -> {
+    token.Minus -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a -. b), scope))
         a, b -> op_error("-", "numbers", a, b)
       }
     }
-    #(token.Star, _) -> {
+    token.Star -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a *. b), scope))
         a, b -> op_error("*", "numbers", a, b)
       }
     }
-    #(token.Slash, _) -> {
+    token.Slash -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a /. b), scope))
         a, b -> op_error("/", "numbers", a, b)
       }
     }
-    #(token.Less, _) -> {
+    token.Less -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <. b), scope))
         a, b -> op_error("<", "numbers", a, b)
       }
     }
-    #(token.Greater, _) -> {
+    token.Greater -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >. b), scope))
         a, b -> op_error(">", "numbers", a, b)
       }
     }
-    #(token.LessEq, _) -> {
+    token.LessEq -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <=. b), scope))
         a, b -> op_error("<=", "numbers", a, b)
       }
     }
-    #(token.GreaterEq, _) -> {
+    token.GreaterEq -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >=. b), scope))
         a, b -> op_error(">=", "numbers", a, b)
       }
     }
-    #(token.And, _) -> {
+    token.And -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a && b), scope))
         a, b -> op_error("`and`", "Booleans", a, b)
       }
     }
-    #(token.Or, _) -> {
+    token.Or -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a || b), scope))
         a, b -> op_error("`or`", "Booleans", a, b)
       }
     }
-    #(token.RPipe, _) -> {
+    token.RPipe -> {
       eval_call(right, left, scope)
     }
     _ -> error.runtime_error("BinOp not implemented")
   }
 }
 
-fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
+fn eval_unary(op: token.TokenT, value: parser.Expr, scope: Scope) -> Evaluated {
   case op {
-    #(token.Minus, _) -> {
+    token.Minus -> {
       use #(value, _) <- try(eval(value, scope))
       case value {
         Number(x) -> Ok(#(Number(0.0 -. x), scope))
@@ -229,7 +231,7 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
           )
       }
     }
-    #(token.Bang, _) -> {
+    token.Bang -> {
       use #(value, _) <- try(eval(value, scope))
       case value {
         Bool(x) -> Ok(#(Bool(!x), scope))

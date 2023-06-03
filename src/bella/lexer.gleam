@@ -1,163 +1,71 @@
-import gleam/list
-import gleam/string
-import gleam/regex
-import gleam/result.{try}
-import gleam/map
+import gleam/set
 import gleam/int
-import gleam/float
-import gleam/option.{None, Option, Some}
+import gleam/function
+import nibble/lexer
 import bella/error
-import bella/lexer/token.{TokenType, Tokens}
+import bella/lexer/token
 
-// TYPES .......................................................................
-
-type Matcher =
-  #(String, fn(String) -> TokenType)
-
-type Matched =
-  Option(#(String, TokenType, Int))
-
-type LexResult =
-  Result(Tokens, error.Error)
-
-// LEXER .......................................................................
-
-pub fn lex(str: String) -> LexResult {
+pub fn lexer() {
   let keywords =
-    [
-      #("let", token.Let),
-      #("in", token.In),
-      #("try", token.Try),
-      #("throw", token.Throw),
-      #("if", token.If),
-      #("else", token.Else),
-      #("or", token.Or),
-      #("and", token.And),
-      #("import", token.Import),
-      #("as", token.As),
-      #("true", token.True),
-      #("false", token.False),
-    ]
-    |> map.from_list
+    set.from_list([
+      "let", "in", "try", "throw", "if", "else", "or", "and", "import", "as",
+      "true", "false",
+    ])
 
-  let matchers = [
-    #("^[\\t ]+", i(token.WhiteSpace)),
-    #("^\\n", i(token.Newline)),
-    #("^;.*", i(token.Comment)),
-    #("^\\(", i(token.LParen)),
-    #("^\\)", i(token.RParen)),
-    #("^\\{", i(token.LBrace)),
-    #("^\\}", i(token.RBrace)),
-    #("^\\|>", i(token.RPipe)),
-    #("^->", i(token.Arrow)),
-    #("^==", i(token.EqEq)),
-    #("^!=", i(token.Neq)),
-    #("^>=", i(token.GreaterEq)),
-    #("^<=", i(token.LessEq)),
-    #("^,", i(token.Comma)),
-    #("^\\.", i(token.Dot)),
-    #("^=", i(token.Eq)),
-    #("^:", i(token.Colon)),
-    #("^\\+", i(token.Plus)),
-    #("^-", i(token.Minus)),
-    #("^\\*", i(token.Star)),
-    #("^/", i(token.Slash)),
-    #("^>", i(token.Greater)),
-    #("^<", i(token.Less)),
-    #("^!", i(token.Bang)),
-    #(
-      "^'([^\\\\']|\\\\.)*'|^\"([^\\\\\"]|\\\\.)*\"",
-      fn(x) { token.String(string.slice(x, 1, string.length(x) - 2)) },
-    ),
-    #(
-      "^[a-zA-Z_]\\w*",
-      fn(word) {
-        case map.get(keywords, word) {
-          Ok(keyword) -> keyword
-          _ -> token.Ident(word)
-        }
-      },
-    ),
-    #("^\\d+(\\.\\d+)?", fn(x) { token.Number(to_float(x)) }),
-  ]
-
-  use tokens <- try(lex_str(str, matchers, [], 1, 1))
-
-  tokens
-  |> list.reverse
-  |> Ok
+  lexer.simple([
+    lexer.identifier("[a-zA-Z]", "\\w", keywords, token.Ident),
+    lexer.number_with_separator(",", int.to_float, function.identity)
+    |> lexer.map(token.Number),
+    lexer.string("\"", token.String),
+    lexer.string("'", token.String),
+    lexer.token("(", token.LParen),
+    lexer.token(")", token.RParen),
+    lexer.token("{", token.LBrace),
+    lexer.token("}", token.RBrace),
+    lexer.token("+", token.Plus),
+    lexer.symbol("-", "[^>]", token.Minus),
+    lexer.token("*", token.Star),
+    lexer.token("/", token.Slash),
+    lexer.symbol("<", "[^=]", token.Less),
+    lexer.symbol(">", "[^=]", token.Greater),
+    lexer.token("<=", token.LessEq),
+    lexer.token(">=", token.GreaterEq),
+    lexer.token("==", token.EqEq),
+    lexer.token("!=", token.Neq),
+    lexer.symbol("=", "[^=]", token.Eq),
+    lexer.token(":", token.Colon),
+    lexer.token("->", token.Arrow),
+    lexer.token(",", token.Comma),
+    lexer.token(".", token.Dot),
+    lexer.token("|>", token.RPipe),
+    lexer.symbol("!", "[^=]", token.Bang),
+    lexer.keyword("let", "[\\W\\D]", token.Let),
+    lexer.keyword("in", "[\\W\\D]", token.In),
+    lexer.keyword("try", "[\\W\\D]", token.Try),
+    lexer.keyword("throw", "[\\W\\D]", token.Throw),
+    lexer.keyword("if", "[\\W\\D]", token.If),
+    lexer.keyword("else", "[\\W\\D]", token.Else),
+    lexer.keyword("or", "[\\W\\D]", token.Or),
+    lexer.keyword("and", "[\\W\\D]", token.And),
+    lexer.keyword("import", "[\\W\\D]", token.Import),
+    lexer.keyword("as", "[\\W\\D]", token.As),
+    lexer.keyword("true", "[\\W\\D]", token.True),
+    lexer.keyword("false", "[\\W\\D]", token.False),
+    lexer.comment(";", token.Comment)
+    |> lexer.ignore,
+    lexer.whitespace(Nil)
+    |> lexer.ignore,
+  ])
 }
 
-fn lex_str(
-  str: String,
-  matchers: List(Matcher),
-  tokens: Tokens,
-  line: Int,
-  col: Int,
-) -> LexResult {
-  case str {
-    "" ->
-      Ok([#(token.Eof, token.Position(#(line, col), #(line, col))), ..tokens])
-    _ ->
-      case match(str, matchers) {
-        Some(#(rest, tok_type, len)) ->
-          lex_str(
-            rest,
-            matchers,
-            case tok_type {
-              token.WhiteSpace | token.Newline | token.Comment -> tokens
-              _ -> [
-                #(tok_type, token.Position(#(line, col), #(line, col + len))),
-                ..tokens
-              ]
-            },
-            case tok_type {
-              token.Newline -> line + 1
-              _ -> line
-            },
-            case tok_type {
-              token.Newline -> 1
-              _ -> col + len
-            },
-          )
-        None ->
-          error.syntax_error(
-            "I don't understand what this means",
-            token.Position(#(line, col), #(line, col + 1)),
-          )
-      }
-  }
-}
-
-fn match(str: String, matchers: List(Matcher)) -> Matched {
-  use prev, matcher <- list.fold(matchers, None)
-  option.or(prev, match_regex(matcher, str))
-}
-
-fn match_regex(matcher: Matcher, str: String) -> Matched {
-  let #(regex_string, to_tok) = matcher
-  let assert Ok(re) = regex.from_string(regex_string)
-
-  case regex.scan(re, str) {
-    [regex.Match(content, _), ..] ->
-      Some(#(
-        string.drop_left(str, string.length(content)),
-        to_tok(content),
-        string.length(content),
-      ))
-    [] -> None
-  }
-}
-
-// UTILS .......................................................................
-
-fn i(x) {
-  fn(_) { x }
-}
-
-fn to_float(x: String) -> Float {
-  case int.parse(x) {
-    Ok(n) -> int.to_float(n)
-    _ -> result.unwrap(float.parse(x), 0.0)
+pub fn lex(source: String) {
+  case lexer.run(source, lexer()) {
+    Error(lexer.NoMatchFound(row, col, _)) ->
+      error.syntax_error(
+        "I don't know what this means",
+        #(row, col),
+        #(row, col + 1),
+      )
+    Ok(tokens) -> Ok(tokens)
   }
 }
