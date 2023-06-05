@@ -1,0 +1,32 @@
+let
+  mylist =
+    [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+  map =
+    list -> fn ->
+      if (list == [])
+        []
+      else
+        [first(list) |> fn] + map(rest(list), fn)
+
+  reduce =
+    list -> acc -> fn ->
+      if (list == [])
+        acc
+      else
+        reduce(rest(list), fn(first(list), acc), fn)
+
+  fold =
+    list -> fn ->
+      reduce(rest(list), first(list), fn)
+in
+(
+  ; Squares
+  map(mylist, x -> x * x) |> print
+
+  ; Sum
+  fold(mylist, x -> a -> x + a) |> print
+
+  ; Length
+  reduce(mylist, 0, x -> a -> a + 1) |> print
+)
