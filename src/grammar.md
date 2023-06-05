@@ -21,14 +21,15 @@ comparison := term ( ( '>' | '>=' | '<' | '<=' ) term )*
 term := factor ( ( '+' | '-' ) factor )*
 factor := unary ( ( '/' | '*' ) unary )*
 unary := ( '-' | '!' ) unary | call
-call := primary ( '(' arguments? ')' | '.' Ident )*
+call := primary ( '(' comma_sep? ')' | '.' Ident )*
 
-primary := Ident | Number | String | bool | block | record
+primary := Ident | Number | String | bool | block | record | list
 
 record := '{' ( record_item ( ',' record_item )* )? '}'
 record_item := Ident ( ':' expr )?
+list := '[' comma_sep? ']'
 block := '(' expr+ ')'
 bool := 'true' | 'false'
 
-arguments := expr ( ',' expr )*
+comma_sep := expr ( ',' expr )*
 ```

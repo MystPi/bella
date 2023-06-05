@@ -48,6 +48,8 @@ pub fn lex(str: String) -> LexResult {
     #("^\\)", i(token.RParen)),
     #("^\\{", i(token.LBrace)),
     #("^\\}", i(token.RBrace)),
+    #("^\\[", i(token.LBracket)),
+    #("^\\]", i(token.RBracket)),
     #("^\\|>", i(token.RPipe)),
     #("^->", i(token.Arrow)),
     #("^==", i(token.EqEq)),

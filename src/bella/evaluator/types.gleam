@@ -1,4 +1,5 @@
 import gleam/map
+import gleam/list
 import gleam/float
 import gleam/int
 import bella/error
@@ -11,6 +12,7 @@ pub type DataType {
   String(String)
   Bool(Bool)
   Record(fields: map.Map(String, DataType))
+  List(List(DataType))
   Lambda(param: String, body: parser.Expr, closure: Scope)
   Lambda0(body: parser.Expr, closure: Scope)
   Builtin(func: fn(DataType, Scope) -> Evaluated)
@@ -38,6 +40,7 @@ pub fn to_string(x: DataType) -> String {
         False -> "false"
       }
     Record(f) -> "#record<" <> int.to_string(map.size(f)) <> ">"
+    List(l) -> "#list<" <> int.to_string(list.length(l)) <> ">"
     Lambda(param, ..) -> "#lambda<" <> param <> ">"
     Lambda0(..) -> "#lambda<>"
     Builtin(..) -> "#builtin"
@@ -50,6 +53,7 @@ pub fn to_type(x: DataType) -> String {
     String(..) -> "string"
     Bool(..) -> "boolean"
     Record(..) -> "record"
+    List(..) -> "list"
     Lambda(..) | Lambda0(..) -> "lambda"
     Builtin(..) -> "builtin"
   }

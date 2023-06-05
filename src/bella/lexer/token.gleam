@@ -18,6 +18,8 @@ pub type TokenType {
   RParen
   LBrace
   RBrace
+  LBracket
+  RBracket
   Eq
   Colon
   Arrow

@@ -13,6 +13,7 @@ pub type Expr {
   Block(List(Expr))
   Record(fields: List(#(String, Expr)))
   RecordAccess(record: Expr, field: String)
+  List(List(Expr))
   BinOp(operator: Token, left: Expr, right: Expr)
   Unary(operator: Token, value: Expr)
   Lambda(param: String, body: Expr)
@@ -278,6 +279,7 @@ fn parse_primary(tokens: Tokens) -> Parsed {
     [#(token.False, _), ..rest] -> Ok(#(Bool(False), rest))
     [#(token.LParen, _), ..rest] -> parse_block(rest, [])
     [#(token.LBrace, _), ..rest] -> parse_record(rest)
+    [#(token.LBracket, _), ..rest] -> parse_list(rest)
     [#(_, pos), ..] -> error.syntax_error("I wasn't expecting this", pos)
   }
 }
@@ -332,6 +334,27 @@ fn finish_record(tokens: Tokens, fields: List(#(String, Expr))) -> Parsed {
     }
     [#(token.RBrace, _), ..rest] -> Ok(#(Record(fields), rest))
     [#(_, pos), ..] -> error.syntax_error("I expected a , or }", pos)
+  }
+}
+
+fn parse_list(tokens: Tokens) -> Parsed {
+  case tokens {
+    [#(token.RBracket, _), ..rest] -> Ok(#(List([]), rest))
+    _ -> {
+      use #(expr, rest) <- try(parse_expr(tokens))
+      finish_list(rest, [expr])
+    }
+  }
+}
+
+fn finish_list(tokens: Tokens, items: List(Expr)) -> Parsed {
+  case tokens {
+    [#(token.Comma, _), ..rest] -> {
+      use #(expr, rest) <- try(parse_expr(rest))
+      finish_list(rest, [expr, ..items])
+    }
+    [#(token.RBracket, _), ..rest] -> Ok(#(List(list.reverse(items)), rest))
+    [#(_, pos), ..] -> error.syntax_error("I expected a , or ]", pos)
   }
 }
 

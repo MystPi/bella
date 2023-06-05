@@ -8,8 +8,8 @@ import bella/lexer
 import bella/lexer/token
 import bella/evaluator/builtins
 import bella/evaluator/types.{
-  Bool, Builtin, DataType, Evaluated, Lambda, Lambda0, Number, Record, Scope,
-  String,
+  Bool, Builtin, DataType, Evaluated, Lambda, Lambda0, List, Number, Record,
+  Scope, String,
 }
 
 // EVALUATOR ...................................................................
@@ -68,6 +68,7 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
     parser.Record(fields) -> eval_record(fields, map.new(), scope)
     parser.RecordAccess(record, field) ->
       eval_record_access(record, field, scope)
+    parser.List(items) -> eval_list(items, scope)
     parser.BinOp(op, left, right) -> eval_binop(op, left, right, scope)
     parser.Unary(op, value) -> eval_unary(op, value, scope)
     parser.Call(callee, arg) -> {
@@ -127,6 +128,15 @@ fn eval_record_access(
   }
 }
 
+fn eval_list(items: List(parser.Expr), scope: Scope) -> Evaluated {
+  use items <- try({
+    use item <- list.try_map(items)
+    use #(item, _) <- try(eval(item, scope))
+    Ok(item)
+  })
+  Ok(#(List(items), scope))
+}
+
 fn eval_binop(
   op: token.Token,
   left: parser.Expr,
@@ -141,10 +151,11 @@ fn eval_binop(
         Number(a), Number(b) -> Ok(#(Number(a +. b), scope))
         String(a), String(b) -> Ok(#(String(a <> b), scope))
         Record(a), Record(b) -> Ok(#(Record(map.merge(a, b)), scope))
+        List(a), List(b) -> Ok(#(List(list.append(a, b)), scope))
         a, b ->
           op_error(
             "+",
-            "numbers, strings, or records and be the same type",
+            "numbers, strings, records, or lists and be the same type",
             a,
             b,
           )
