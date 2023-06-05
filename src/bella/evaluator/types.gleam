@@ -2,6 +2,7 @@ import gleam/map
 import gleam/list
 import gleam/float
 import gleam/int
+import gleam/string
 import bella/error
 import bella/parser
 
@@ -39,11 +40,40 @@ pub fn to_string(x: DataType) -> String {
         True -> "true"
         False -> "false"
       }
-    Record(f) -> "#record<" <> int.to_string(map.size(f)) <> ">"
-    List(l) -> "#list<" <> int.to_string(list.length(l)) <> ">"
+    Record(f) -> record_to_string(f)
+    List(l) -> list_to_string(l)
     Lambda(param, ..) -> "#lambda<" <> param <> ">"
     Lambda0(..) -> "#lambda<>"
     Builtin(..) -> "#builtin"
+  }
+}
+
+fn list_to_string(items: List(DataType)) -> String {
+  let items =
+    items
+    |> list.map(inspect)
+    |> string.join(", ")
+
+  "[" <> items <> "]"
+}
+
+fn record_to_string(fields: map.Map(String, DataType)) -> String {
+  let fields =
+    fields
+    |> map.to_list
+    |> list.map(fn(field) {
+      let #(name, value) = field
+      name <> ": " <> inspect(value)
+    })
+    |> string.join(", ")
+
+  "{ " <> fields <> " }"
+}
+
+fn inspect(x: DataType) -> String {
+  case x {
+    String(s) -> "\"" <> s <> "\""
+    _ -> to_string(x)
   }
 }
 
