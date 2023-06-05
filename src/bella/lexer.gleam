@@ -11,8 +11,10 @@ import bella/lexer/token.{TokenType, Tokens}
 
 // TYPES .......................................................................
 
-type Matcher =
-  #(String, fn(String) -> TokenType)
+type Matcher {
+  StringMatcher(String, TokenType)
+  RegexMatcher(regex.Regex, fn(String) -> TokenType)
+}
 
 type Matched =
   Option(#(String, TokenType, Int))
@@ -41,37 +43,37 @@ pub fn lex(str: String) -> LexResult {
     |> map.from_list
 
   let matchers = [
-    #("^[\\t ]+", i(token.WhiteSpace)),
-    #("^\\n", i(token.Newline)),
-    #("^;.*", i(token.Comment)),
-    #("^\\(", i(token.LParen)),
-    #("^\\)", i(token.RParen)),
-    #("^\\{", i(token.LBrace)),
-    #("^\\}", i(token.RBrace)),
-    #("^\\[", i(token.LBracket)),
-    #("^\\]", i(token.RBracket)),
-    #("^\\|>", i(token.RPipe)),
-    #("^->", i(token.Arrow)),
-    #("^==", i(token.EqEq)),
-    #("^!=", i(token.Neq)),
-    #("^>=", i(token.GreaterEq)),
-    #("^<=", i(token.LessEq)),
-    #("^,", i(token.Comma)),
-    #("^\\.", i(token.Dot)),
-    #("^=", i(token.Eq)),
-    #("^:", i(token.Colon)),
-    #("^\\+", i(token.Plus)),
-    #("^-", i(token.Minus)),
-    #("^\\*", i(token.Star)),
-    #("^/", i(token.Slash)),
-    #("^>", i(token.Greater)),
-    #("^<", i(token.Less)),
-    #("^!", i(token.Bang)),
-    #(
+    r("^[\\t ]+", i(token.WhiteSpace)),
+    r("^\\n", i(token.Newline)),
+    r("^;.*", i(token.Comment)),
+    s("(", token.LParen),
+    s(")", token.RParen),
+    s("{", token.LBrace),
+    s("}", token.RBrace),
+    s("[", token.LBracket),
+    s("]", token.RBracket),
+    s("|>", token.RPipe),
+    s("->", token.Arrow),
+    s("==", token.EqEq),
+    s("!=", token.Neq),
+    s(">=", token.GreaterEq),
+    s("<=", token.LessEq),
+    s(",", token.Comma),
+    s(".", token.Dot),
+    s("=", token.Eq),
+    s(":", token.Colon),
+    s("+", token.Plus),
+    s("-", token.Minus),
+    s("*", token.Star),
+    s("/", token.Slash),
+    s(">", token.Greater),
+    s("<", token.Less),
+    s("!", token.Bang),
+    r(
       "^'([^\\\\']|\\\\.)*'|^\"([^\\\\\"]|\\\\.)*\"",
       fn(x) { token.String(string.slice(x, 1, string.length(x) - 2)) },
     ),
-    #(
+    r(
       "^[a-zA-Z_]\\w*",
       fn(word) {
         case map.get(keywords, word) {
@@ -80,7 +82,7 @@ pub fn lex(str: String) -> LexResult {
         }
       },
     ),
-    #("^\\d+(\\.\\d+)?", fn(x) { token.Number(to_float(x)) }),
+    r("^\\d+(\\.\\d+)?", fn(x) { token.Number(to_float(x)) }),
   ]
 
   use tokens <- try(lex_str(str, matchers, [], 1, 1))
@@ -133,25 +135,44 @@ fn lex_str(
 
 fn match(str: String, matchers: List(Matcher)) -> Matched {
   use prev, matcher <- list.fold(matchers, None)
-  option.or(prev, match_regex(matcher, str))
+  option.or(prev, match_matcher(matcher, str))
 }
 
-fn match_regex(matcher: Matcher, str: String) -> Matched {
-  let #(regex_string, to_tok) = matcher
-  let assert Ok(re) = regex.from_string(regex_string)
-
-  case regex.scan(re, str) {
-    [regex.Match(content, _), ..] ->
-      Some(#(
-        string.drop_left(str, string.length(content)),
-        to_tok(content),
-        string.length(content),
-      ))
-    [] -> None
+fn match_matcher(matcher: Matcher, str: String) -> Matched {
+  case matcher {
+    StringMatcher(tok_str, tok_type) ->
+      case string.starts_with(str, tok_str) {
+        True ->
+          Some(#(
+            string.drop_left(str, string.length(tok_str)),
+            tok_type,
+            string.length(tok_str),
+          ))
+        _ -> None
+      }
+    RegexMatcher(re, to_tok) ->
+      case regex.scan(re, str) {
+        [regex.Match(content, _), ..] ->
+          Some(#(
+            string.drop_left(str, string.length(content)),
+            to_tok(content),
+            string.length(content),
+          ))
+        [] -> None
+      }
   }
 }
 
 // UTILS .......................................................................
+
+fn r(regex_string: String, to_tok: fn(String) -> TokenType) -> Matcher {
+  let assert Ok(re) = regex.from_string(regex_string)
+  RegexMatcher(re, to_tok)
+}
+
+fn s(s: String, tok_type: TokenType) -> Matcher {
+  StringMatcher(s, tok_type)
+}
 
 fn i(x) {
   fn(_) { x }
