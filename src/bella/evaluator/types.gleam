@@ -34,7 +34,7 @@ pub fn to_string(x: DataType) -> String {
         True -> int.to_string(float.truncate(n))
         False -> float.to_string(n)
       }
-    String(s) -> s
+    String(s) -> unescape(s)
     Bool(b) ->
       case b {
         True -> "true"
@@ -46,6 +46,16 @@ pub fn to_string(x: DataType) -> String {
     Lambda0(..) -> "#lambda<>"
     Builtin(..) -> "#builtin"
   }
+}
+
+fn unescape(string: String) -> String {
+  string
+  |> string.replace("\\\"", "\"")
+  |> string.replace("\\'", "'")
+  |> string.replace("\\n", "\n")
+  |> string.replace("\\r", "\r")
+  |> string.replace("\\t", "\t")
+  |> string.replace("\\\\", "\\")
 }
 
 fn list_to_string(items: List(DataType)) -> String {
