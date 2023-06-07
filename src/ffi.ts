@@ -40,10 +40,12 @@ const escapeCodes = {
 };
 
 export function unescape(string: string) {
-  return string.replace(
-    /\\(.)/g,
-    (_, c) => escapeCodes[c as keyof typeof escapeCodes]
-  );
+  return string.replace(/\\(.)/g, (_, c) => {
+    if (c in escapeCodes) {
+      return escapeCodes[c as keyof typeof escapeCodes];
+    }
+    return `\\${c}`;
+  });
 }
 
 export function stringify(string: string) {
