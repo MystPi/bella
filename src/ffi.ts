@@ -29,3 +29,23 @@ export function createDirectory(path: string) {
 export function getArgs() {
   return toList(Deno.args);
 }
+
+const escapeCodes = {
+  '\\': '\\',
+  '"': '"',
+  "'": "'",
+  n: '\n',
+  r: '\r',
+  t: '\t',
+};
+
+export function unescape(string: string) {
+  return string.replace(
+    /\\(.)/g,
+    (_, c) => escapeCodes[c as keyof typeof escapeCodes]
+  );
+}
+
+export function stringify(string: string) {
+  return JSON.stringify(unescape(string));
+}

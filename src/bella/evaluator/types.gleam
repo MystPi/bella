@@ -5,6 +5,7 @@ import gleam/int
 import gleam/string
 import bella/error
 import bella/parser
+import bella/utils
 
 // TYPES .......................................................................
 
@@ -34,7 +35,7 @@ pub fn to_string(x: DataType) -> String {
         True -> int.to_string(float.truncate(n))
         False -> float.to_string(n)
       }
-    String(s) -> unescape(s)
+    String(s) -> utils.unescape(s)
     Bool(b) ->
       case b {
         True -> "true"
@@ -46,16 +47,6 @@ pub fn to_string(x: DataType) -> String {
     Lambda0(..) -> "#lambda<>"
     Builtin(..) -> "#builtin"
   }
-}
-
-fn unescape(string: String) -> String {
-  string
-  |> string.replace("\\\"", "\"")
-  |> string.replace("\\'", "'")
-  |> string.replace("\\n", "\n")
-  |> string.replace("\\r", "\r")
-  |> string.replace("\\t", "\t")
-  |> string.replace("\\\\", "\\")
 }
 
 fn list_to_string(items: List(DataType)) -> String {
@@ -82,7 +73,7 @@ fn record_to_string(fields: map.Map(String, DataType)) -> String {
 
 fn inspect(x: DataType) -> String {
   case x {
-    String(s) -> "\"" <> s <> "\""
+    String(s) -> utils.stringify(s)
     _ -> to_string(x)
   }
 }

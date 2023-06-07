@@ -9,3 +9,9 @@ pub external fn create_directory(String) -> Result(String, String) =
 
 pub external fn get_args() -> List(String) =
   "../ffi.ts" "getArgs"
+
+pub external fn unescape(String) -> String =
+  "../ffi.ts" "unescape"
+
+pub external fn stringify(String) -> String =
+  "../ffi.ts" "stringify"
