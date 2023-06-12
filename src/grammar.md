@@ -5,7 +5,13 @@ module := import* expr+
 
 import := 'import' Ident ( '/' Ident )* ( 'as' Ident )?
 
-expr := pipe | lambda | let_expr | if_expr | throw_expr | try_expr
+expr :=
+  | pipe
+  | lambda
+  | let_expr
+  | if_expr
+  | throw_expr
+  | try_expr
 
 lambda := Ident? '->' expr
 let_expr := 'let' ( Ident '=' expr 'in' )+ expr
@@ -21,15 +27,22 @@ comparison := term ( ( '>' | '>=' | '<' | '<=' ) term )*
 term := factor ( ( '+' | '-' ) factor )*
 factor := unary ( ( '/' | '*' ) unary )*
 unary := ( '-' | '!' ) unary | call
-call := primary ( '(' comma_sep? ')' | '.' Ident )*
+call := primary ( '(' comma_sep<expr>? ')' | '.' Ident )*
 
-primary := Ident | Number | String | bool | block | record | list
+primary :=
+  | Ident
+  | Number
+  | String
+  | bool
+  | block
+  | record
+  | list
 
-record := '{' ( record_item ( ',' record_item )* )? '}'
+record := '{' comma_sep<record_item>? '}'
 record_item := Ident ( ':' expr )?
-list := '[' comma_sep? ']'
+list := '[' comma_sep<expr>? ']'
 block := '(' expr+ ')'
 bool := 'true' | 'false'
 
-comma_sep := expr ( ',' expr )*
+comma_sep<r> := r ( ',' r )*
 ```
