@@ -7,6 +7,7 @@ import gleam/int
 import gleam/float
 import gleam/option.{None, Option, Some}
 import bella/error
+import bella/utils
 import bella/lexer/token.{TokenType, Tokens}
 
 // TYPES .......................................................................
@@ -71,7 +72,11 @@ pub fn lex(str: String) -> LexResult {
     s("!", token.Bang),
     r(
       "^'([^\\\\']|\\\\.)*'|^\"([^\\\\\"]|\\\\.)*\"",
-      fn(x) { token.String(string.slice(x, 1, string.length(x) - 2)) },
+      fn(x) {
+        string.slice(x, 1, string.length(x) - 2)
+        |> utils.unescape
+        |> token.String
+      },
     ),
     r(
       "^[a-zA-Z_]\\w*",

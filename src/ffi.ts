@@ -49,5 +49,5 @@ export function unescape(string: string) {
 }
 
 export function stringify(string: string) {
-  return JSON.stringify(unescape(string));
+  return JSON.stringify(string);
 }

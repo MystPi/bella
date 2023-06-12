@@ -35,7 +35,7 @@ pub fn to_string(x: DataType) -> String {
         True -> int.to_string(float.truncate(n))
         False -> float.to_string(n)
       }
-    String(s) -> utils.unescape(s)
+    String(s) -> s
     Bool(b) ->
       case b {
         True -> "true"
