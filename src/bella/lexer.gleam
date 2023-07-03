@@ -45,7 +45,7 @@ pub fn lex(str: String) -> LexResult {
 
   let matchers = [
     r("^[\\t ]+", i(token.WhiteSpace)),
-    r("^\\n", i(token.Newline)),
+    r("^\\r?\\n", i(token.Newline)),
     r("^;.*", i(token.Comment)),
     s("(", token.LParen),
     s(")", token.RParen),
