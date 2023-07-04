@@ -1,15 +1,25 @@
 import gleam/io
 import gleam/result.{try}
+import gleam/iterator
+import gleam/list
+import gleam/javascript
+import gleam/string
 import gleam_community/ansi
 import bella/evaluator
 import bella/error
 import bella/utils
 import bella/project
 
-const usage = "Usage:
-  bella create <name>   Create a new project
-  bella run             Run the current project
-  bella <path>          Run the given file"
+// const usage = "Usage:
+//   bella create <name>   Create a new project
+//   bella run             Run the current project
+//   bella <path>          Run the given file"
+
+const usage = [
+  ["create <name>", "Create a new project"],
+  ["run", "Run the current project"],
+  ["<path>", "Run the given file"],
+]
 
 pub fn main() {
   case utils.get_args(), get_project() {
@@ -17,7 +27,7 @@ pub fn main() {
     ["create", name, ..], _ -> create_project(name)
     ["run", ..], #(True, Ok(project)) -> run_project(project.name)
     [path, ..], _ -> run_file(path)
-    _, _ -> io.println(usage)
+    _, _ -> print_usage()
   }
 }
 
@@ -67,6 +77,56 @@ fn create_project_files(name: String) -> Result(String, String) {
     "./" <> name <> "/src/" <> name <> ".bella",
     "print('Hello, world!')",
   )
+}
+
+// USAGE TABLE .................................................................
+
+fn print_usage() {
+  let min_distance = get_min_distance_for_usage()
+  io.println("Usage:")
+  iterator.range(0, list.length(usage))
+  |> iterator.map(fn(i) {
+    let current_cmd =
+      result.unwrap(list.at(result.unwrap(list.at(usage, i), [""]), 0), "")
+    let distance = min_distance - string.length(current_cmd) + 3
+    let cmd_desc =
+      result.unwrap(list.at(result.unwrap(list.at(usage, i), [""]), 1), "")
+    io.println(current_cmd <> duplicate_string(" ", distance) <> cmd_desc)
+  })
+  |> iterator.run()
+  Nil
+}
+
+fn get_min_distance_for_usage() -> Int {
+  let min_distance = javascript.make_reference(0)
+  iterator.range(0, list.length(usage))
+  |> iterator.map(fn(i) {
+    let evaluation_distance =
+      string.length(result.unwrap(
+        list.at(result.unwrap(list.at(usage, i), [""]), 0),
+        "",
+      ))
+    case evaluation_distance > javascript.dereference(min_distance) {
+      True -> evaluation_distance
+      False -> javascript.dereference(min_distance)
+    }
+  })
+  |> iterator.map(fn(val) { javascript.set_reference(min_distance, val) })
+  |> iterator.run()
+  javascript.dereference(min_distance)
+}
+
+fn duplicate_string(string: String, x: Int) -> String {
+  let base_str = javascript.make_reference(string)
+  iterator.range(0, x - 1)
+  |> iterator.map(fn(_) {
+    javascript.set_reference(
+      base_str,
+      string <> javascript.dereference(base_str),
+    )
+  })
+  |> iterator.run()
+  javascript.dereference(base_str)
 }
 
 // UTILS .......................................................................
