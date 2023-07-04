@@ -1,4 +1,7 @@
 import gleam/io
+import gleam/list
+import gleam/string
+import gleam/int
 import gleam/result.{try}
 import gleam_community/ansi
 import bella/evaluator
@@ -6,10 +9,11 @@ import bella/error
 import bella/utils
 import bella/project
 
-const usage = "Usage:
-  bella create <name>   Create a new project
-  bella run             Run the current project
-  bella <path>          Run the given file"
+const usage = [
+  #("create <name>", "Create a new project"),
+  #("run", "Run the current project"),
+  #("<path>", "Run the given file"),
+]
 
 pub fn main() {
   case utils.get_args(), get_project() {
@@ -17,8 +21,25 @@ pub fn main() {
     ["create", name, ..], _ -> create_project(name)
     ["run", ..], #(True, Ok(project)) -> run_project(project.name)
     [path, ..], _ -> run_file(path)
-    _, _ -> io.println(usage)
+    _, _ -> print_usage()
   }
+}
+
+fn print_usage() -> Nil {
+  let assert Ok(max_len) =
+    usage
+    |> list.map(fn(x) { string.length(x.0) })
+    |> list.sort(int.compare)
+    |> list.last
+
+  io.println("Usage:")
+
+  usage
+  |> list.each(fn(x) {
+    let #(command, desc) = x
+    let left_over = max_len - string.length(command) + 2
+    io.println("  bella " <> command <> string.repeat(" ", left_over) <> desc)
+  })
 }
 
 fn get_project() -> #(Bool, Result(project.Project, String)) {
