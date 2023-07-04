@@ -91,7 +91,9 @@ fn print_usage() {
     let distance = min_distance - string.length(current_cmd) + 3
     let cmd_desc =
       result.unwrap(list.at(result.unwrap(list.at(usage, i), [""]), 1), "")
-    io.println(current_cmd <> duplicate_string(" ", distance) <> cmd_desc)
+    io.println(
+      "bella " <> current_cmd <> duplicate_string(" ", distance) <> cmd_desc,
+    )
   })
   |> iterator.run()
   Nil
