@@ -275,8 +275,8 @@ fn eval_call(callee: DataType, arg: DataType, scope: Scope) -> Evaluated {
   }
 }
 
-fn eval_call0(calle: DataType, scope: Scope) -> Evaluated {
-  case calle {
+fn eval_call0(callee: DataType, scope: Scope) -> Evaluated {
+  case callee {
     Lambda0(body, closure) -> {
       use #(result, _) <- try(eval(body, map.merge(scope, closure)))
       Ok(#(result, scope))
