@@ -30,8 +30,9 @@ pub type Module {
   Module(imports: List(Import), body: List(Expr))
 }
 
-type Import =
-  #(String, String)
+pub type Import {
+  Import(alias: String, path: String)
+}
 
 type Parsed =
   Result(#(Expr, Tokens), error.Error)
@@ -60,7 +61,7 @@ fn parse_imports(
       use #(i, rest) <- try(finish_import(rest, name, name))
       case rest {
         [#(token.As, _), #(token.Ident(alias), _), ..rest] ->
-          parse_imports(rest, [#(alias, i.1), ..imports])
+          parse_imports(rest, [Import(alias, i.path), ..imports])
         [#(token.As, _), #(_, pos), ..] ->
           error.syntax_error("I expected an identifier", pos)
         _ -> parse_imports(rest, [i, ..imports])
@@ -82,7 +83,7 @@ fn finish_import(
       finish_import(rest, acc <> "/" <> name, name)
     [#(token.Slash, _), #(_, pos), ..] ->
       error.syntax_error("I expected an identifier", pos)
-    _ -> Ok(#(#(name, acc), tokens))
+    _ -> Ok(#(Import(name, acc), tokens))
   }
 }
 

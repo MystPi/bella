@@ -26,7 +26,7 @@ fn evaluate(mod: parser.Module) -> Evaluated {
     ..builtins.builtins
   ]
   use imported <- try({
-    use #(alias, path) <- list.try_map(mod.imports)
+    use parser.Import(alias, path) <- list.try_map(mod.imports)
     use #(result, _) <- try(import_file("src/" <> path <> ".bella"))
     Ok(#(alias, result))
   })
