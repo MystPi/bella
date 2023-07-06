@@ -1,3 +1,5 @@
+; See examples/example_project for usage of real imports
+
 let math =
   import_('./examples/math.bella')
 in
