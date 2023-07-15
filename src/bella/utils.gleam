@@ -1,17 +1,17 @@
-pub external fn read_file(String) -> Result(String, String) =
-  "../ffi.ts" "readFile"
+@external(javascript, "../ffi.ts", "readFile")
+pub fn read_file(a: String) -> Result(String, String)
 
-pub external fn write_file(String, String) -> Result(String, String) =
-  "../ffi.ts" "writeFile"
+@external(javascript, "../ffi.ts", "writeFile")
+pub fn write_file(a: String, b: String) -> Result(String, String)
 
-pub external fn create_directory(String) -> Result(String, String) =
-  "../ffi.ts" "createDirectory"
+@external(javascript, "../ffi.ts", "createDirectory")
+pub fn create_directory(a: String) -> Result(String, String)
 
-pub external fn get_args() -> List(String) =
-  "../ffi.ts" "getArgs"
+@external(javascript, "../ffi.ts", "getArgs")
+pub fn get_args() -> List(String)
 
-pub external fn unescape(String) -> String =
-  "../ffi.ts" "unescape"
+@external(javascript, "../ffi.ts", "unescape")
+pub fn unescape(a: String) -> String
 
-pub external fn stringify(String) -> String =
-  "../ffi.ts" "stringify"
+@external(javascript, "../ffi.ts", "stringify")
+pub fn stringify(a: String) -> String

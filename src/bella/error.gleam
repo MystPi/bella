@@ -31,7 +31,7 @@ pub fn imported_error(err: Error, source: String, path: String) {
 pub fn print_error(err: Error, source: String, path: String) -> Nil {
   case err {
     ImportedError(err, source, path2) -> {
-      "↓ imported from " <> ansi.italic(path)
+      { "↓ imported from " <> ansi.italic(path) }
       |> ansi.dim
       |> io.println_error
       print_error(err, source, path2)
