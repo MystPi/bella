@@ -1,9 +1,9 @@
 import gleam/map
 import gleam/list
 import gleam/result.{try}
+import simplifile
 import bella/error
 import bella/parser
-import bella/utils
 import bella/lexer
 import bella/lexer/token
 import bella/evaluator/builtins
@@ -354,7 +354,7 @@ fn op_error(op: String, must_be: String, a: DataType, b: DataType) -> Evaluated 
 }
 
 fn import_file(path: String) -> Evaluated {
-  case utils.read_file(path) {
+  case simplifile.read(path) {
     Ok(contents) ->
       case evaluate_str(contents) {
         Ok(#(result, _)) -> Ok(#(result, map.new()))

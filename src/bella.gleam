@@ -4,6 +4,7 @@ import gleam/string
 import gleam/int
 import gleam/result.{try}
 import gleam_community/ansi
+import simplifile
 import bella/evaluator
 import bella/error
 import bella/utils
@@ -43,7 +44,7 @@ fn print_usage() -> Nil {
 }
 
 fn get_project() -> #(Bool, Result(project.Project, String)) {
-  case utils.read_file("bella.json") {
+  case simplifile.read("bella.json") {
     Ok(contents) ->
       case project.decode(contents) {
         Ok(project) -> #(True, Ok(project))
@@ -58,7 +59,7 @@ fn run_project(name: String) -> Nil {
 }
 
 fn run_file(path: String) -> Nil {
-  case utils.read_file(path) {
+  case simplifile.read(path) {
     Ok(contents) -> run_str(contents, path)
     _ -> error("I couldn't find the requested file: " <> path)
   }
@@ -78,15 +79,15 @@ fn create_project(name: String) -> Nil {
   }
 }
 
-fn create_project_files(name: String) -> Result(String, String) {
-  use _ <- try(utils.create_directory("./" <> name <> "/src"))
-  use _ <- try(utils.write_file(
-    "./" <> name <> "/bella.json",
+fn create_project_files(name: String) -> Result(Nil, simplifile.FileError) {
+  use _ <- try(simplifile.create_directory_all("./" <> name <> "/src"))
+  use _ <- try(simplifile.write(
     project.init(name),
+    "./" <> name <> "/bella.json",
   ))
-  utils.write_file(
-    "./" <> name <> "/src/" <> name <> ".bella",
+  simplifile.write(
     "print('Hello, world!')",
+    "./" <> name <> "/src/" <> name <> ".bella",
   )
 }
 
