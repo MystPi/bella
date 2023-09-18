@@ -1,9 +1,13 @@
 pub type Position {
-  Position(from: #(Int, Int), to: #(Int, Int))
+  Position(line: Int, col: Int)
+}
+
+pub type Span {
+  Span(from: Position, to: Position)
 }
 
 pub type Token =
-  #(TokenType, Position)
+  #(TokenType, Span)
 
 pub type Tokens =
   List(Token)

@@ -7,14 +7,14 @@ import bella/lexer/token
 // TYPES .......................................................................
 
 pub type Error {
-  SyntaxError(String, token.Position)
+  SyntaxError(String, token.Span)
   RuntimeError(String)
   ImportedError(Error, String, String)
 }
 
 // CONSTRUCTORS ................................................................
 
-pub fn syntax_error(msg: String, pos: token.Position) {
+pub fn syntax_error(msg: String, pos: token.Span) {
   gleam.Error(SyntaxError(msg, pos))
 }
 
@@ -42,12 +42,12 @@ pub fn print_error(err: Error, source: String, path: String) -> Nil {
 
 pub fn print_error_message(err: Error, source: String, path: String) -> Nil {
   case err {
-    SyntaxError(msg, pos) ->
+    SyntaxError(msg, span) ->
       ansi.red("✕ ") <> hug.error(
         source,
         in: path,
-        from: pos.from,
-        to: pos.to,
+        from: #(span.from.line, span.from.col),
+        to: #(span.to.line, span.to.col),
         message: "invalid syntax",
         hint: ansi.blue("? ") <> msg,
       )

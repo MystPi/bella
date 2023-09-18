@@ -1,191 +1,360 @@
+// Heavily inspired by https://github.com/DanielleMaywood/glexer
+// Thank you very much!
+
 import gleam/list
-import gleam/string
-import gleam/regex
 import gleam/result.{try}
-import gleam/map
 import gleam/int
 import gleam/float
-import gleam/option.{None, Option, Some}
+import gleam/string
 import bella/error
 import bella/utils
-import bella/lexer/token.{TokenType, Tokens}
+import bella/lexer/token.{Position, Span, Token, TokenType, Tokens}
 
 // TYPES .......................................................................
 
-type Matcher {
-  StringMatcher(String, TokenType)
-  RegexMatcher(regex.Regex, fn(String) -> TokenType)
-}
-
-type Matched =
-  Option(#(String, TokenType, Int))
-
-type LexResult =
-  Result(Tokens, error.Error)
+pub type LexResult =
+  Result(#(String, Position, Token), error.Error)
 
 // LEXER .......................................................................
 
-pub fn lex(str: String) -> LexResult {
-  let keywords =
-    [
-      #("let", token.Let),
-      #("in", token.In),
-      #("try", token.Try),
-      #("throw", token.Throw),
-      #("if", token.If),
-      #("else", token.Else),
-      #("or", token.Or),
-      #("and", token.And),
-      #("import", token.Import),
-      #("as", token.As),
-      #("true", token.True),
-      #("false", token.False),
-    ]
-    |> map.from_list
-
-  let matchers = [
-    r("^[\\t ]+", i(token.WhiteSpace)),
-    r("^\\r?\\n", i(token.Newline)),
-    r("^;.*", i(token.Comment)),
-    s("(", token.LParen),
-    s(")", token.RParen),
-    s("{", token.LBrace),
-    s("}", token.RBrace),
-    s("[", token.LBracket),
-    s("]", token.RBracket),
-    s("|>", token.RPipe),
-    s("->", token.Arrow),
-    s("==", token.EqEq),
-    s("!=", token.Neq),
-    s(">=", token.GreaterEq),
-    s("<=", token.LessEq),
-    s(",", token.Comma),
-    s(".", token.Dot),
-    s("=", token.Eq),
-    s(":", token.Colon),
-    s("+", token.Plus),
-    s("-", token.Minus),
-    s("*", token.Star),
-    s("/", token.Slash),
-    s(">", token.Greater),
-    s("<", token.Less),
-    s("!", token.Bang),
-    r(
-      "^'([^\\\\']|\\\\.)*'|^\"([^\\\\\"]|\\\\.)*\"",
-      fn(x) {
-        string.slice(x, 1, string.length(x) - 2)
-        |> utils.unescape
-        |> token.String
-      },
-    ),
-    r(
-      "^[a-zA-Z_]\\w*",
-      fn(word) {
-        case map.get(keywords, word) {
-          Ok(keyword) -> keyword
-          _ -> token.Ident(word)
-        }
-      },
-    ),
-    r("^\\d+(\\.\\d+)?", fn(x) { token.Number(to_float(x)) }),
-  ]
-
-  use tokens <- try(lex_str(str, matchers, [], 1, 1))
+pub fn lex(str: String) -> Result(Tokens, error.Error) {
+  use tokens <- try(lex_(str, Position(1, 1), []))
 
   tokens
   |> list.reverse
   |> Ok
 }
 
-fn lex_str(
-  str: String,
-  matchers: List(Matcher),
+pub fn lex_(
+  input: String,
+  pos: Position,
   tokens: Tokens,
-  line: Int,
-  col: Int,
-) -> LexResult {
-  case str {
-    "" ->
-      Ok([#(token.Eof, token.Position(#(line, col), #(line, col))), ..tokens])
+) -> Result(Tokens, error.Error) {
+  use #(rest, pos, token) <- try(next(input, pos))
+  case token {
+    #(token.Eof, _) -> Ok([token, ..tokens])
+    token -> lex_(rest, pos, [token, ..tokens])
+  }
+}
+
+fn next(input: String, pos: Position) -> LexResult {
+  case input {
+    // End of file
+    "" -> token("", pos, token.Eof, 0)
+
+    // Newline
+    "\r\n" <> rest | "\n" <> rest -> next(rest, advance_line(pos))
+
+    // Whitespace
+    " " <> rest | "\t" <> rest -> next(rest, advance(pos, 1))
+
+    // Comment
+    ";" <> rest -> comment(rest, advance(pos, 1))
+
+    // Grouping
+    "(" <> rest -> token(rest, pos, token.LParen, 1)
+    ")" <> rest -> token(rest, pos, token.RParen, 1)
+    "{" <> rest -> token(rest, pos, token.LBrace, 1)
+    "}" <> rest -> token(rest, pos, token.RBrace, 1)
+    "[" <> rest -> token(rest, pos, token.LBracket, 1)
+    "]" <> rest -> token(rest, pos, token.RBracket, 1)
+
+    // Punctuation
+    "|>" <> rest -> token(rest, pos, token.RPipe, 2)
+    "->" <> rest -> token(rest, pos, token.Arrow, 2)
+    "==" <> rest -> token(rest, pos, token.EqEq, 2)
+    "!=" <> rest -> token(rest, pos, token.Neq, 2)
+    ">=" <> rest -> token(rest, pos, token.GreaterEq, 2)
+    "<=" <> rest -> token(rest, pos, token.LessEq, 2)
+    "," <> rest -> token(rest, pos, token.Comma, 1)
+    "." <> rest -> token(rest, pos, token.Dot, 1)
+    "=" <> rest -> token(rest, pos, token.Eq, 1)
+    ":" <> rest -> token(rest, pos, token.Colon, 1)
+    "+" <> rest -> token(rest, pos, token.Plus, 1)
+    "-" <> rest -> token(rest, pos, token.Minus, 1)
+    "*" <> rest -> token(rest, pos, token.Star, 1)
+    "/" <> rest -> token(rest, pos, token.Slash, 1)
+    ">" <> rest -> token(rest, pos, token.Greater, 1)
+    "<" <> rest -> token(rest, pos, token.Less, 1)
+    "!" <> rest -> token(rest, pos, token.Bang, 1)
+
+    // String
+    "\"" <> rest -> string(rest, pos, "", "\"")
+    "'" <> rest -> string(rest, pos, "", "'")
+
+    // Number
+    "0" <> _
+    | "1" <> _
+    | "2" <> _
+    | "3" <> _
+    | "4" <> _
+    | "5" <> _
+    | "6" <> _
+    | "7" <> _
+    | "8" <> _
+    | "9" <> _ -> number(input, pos, "", IntMode)
+
     _ ->
-      case match(str, matchers) {
-        Some(#(rest, tok_type, len)) ->
-          lex_str(
+      case string.pop_grapheme(input) {
+        Ok(#(c, rest)) ->
+          case is_alpha(c) {
+            True -> ident(rest, pos, c)
+            False ->
+              error.syntax_error(
+                "I don't understand what this means",
+                pos_span(pos, 1),
+              )
+          }
+        _ -> next(input, pos)
+      }
+  }
+}
+
+fn pos_span(pos: Position, span: Int) -> Span {
+  Span(from: pos, to: Position(pos.line, pos.col + span))
+}
+
+fn advance_line(pos: Position) -> Position {
+  Position(line: pos.line + 1, col: 1)
+}
+
+fn advance(pos: Position, offset: Int) -> Position {
+  Position(line: pos.line, col: pos.col + offset)
+}
+
+fn token(
+  input: String,
+  pos: Position,
+  token: TokenType,
+  length: Int,
+) -> LexResult {
+  Ok(#(input, advance(pos, length), #(token, pos_span(pos, length))))
+}
+
+fn comment(input: String, pos: Position) -> LexResult {
+  case input {
+    "\r\n" <> rest | "\n" <> rest -> next(rest, advance_line(pos))
+
+    source ->
+      case string.pop_grapheme(source) {
+        Ok(#(_, rest)) -> comment(rest, advance(pos, 1))
+        _ -> next(source, pos)
+      }
+  }
+}
+
+fn string(
+  input: String,
+  start: Position,
+  content: String,
+  delim: String,
+) -> LexResult {
+  case input {
+    "\\" <> rest ->
+      case string.pop_grapheme(rest) {
+        Ok(#(c, rest)) -> string(rest, start, content <> "\\" <> c, delim)
+        _ -> string(rest, start, content <> "\\", delim)
+      }
+
+    "\r\n" <> _ | "\n" <> _ ->
+      error.syntax_error(
+        "Unterminated string",
+        pos_span(start, string.length(content) + 2),
+      )
+
+    _ ->
+      case string.pop_grapheme(input) {
+        Ok(#(c, rest)) if c == delim ->
+          token(
             rest,
-            matchers,
-            case tok_type {
-              token.WhiteSpace | token.Newline | token.Comment -> tokens
-              _ -> [
-                #(tok_type, token.Position(#(line, col), #(line, col + len))),
-                ..tokens
-              ]
-            },
-            case tok_type {
-              token.Newline -> line + 1
-              _ -> line
-            },
-            case tok_type {
-              token.Newline -> 1
-              _ -> col + len
-            },
+            start,
+            token.String(
+              content
+              |> utils.unescape,
+            ),
+            string.length(content) + 2,
           )
-        None ->
+
+        Ok(#(c, rest)) -> string(rest, start, content <> c, delim)
+
+        _ ->
           error.syntax_error(
-            "I don't understand what this means",
-            token.Position(#(line, col), #(line, col + 1)),
+            "Unterminated string",
+            pos_span(start, string.length(content) + 2),
           )
       }
   }
 }
 
-fn match(str: String, matchers: List(Matcher)) -> Matched {
-  use prev, matcher <- list.fold(matchers, None)
-  option.or(prev, match_matcher(matcher, str))
+type NumberMode {
+  IntMode
+  DotNoDecimal
+  DotDecimal
 }
 
-fn match_matcher(matcher: Matcher, str: String) -> Matched {
-  case matcher {
-    StringMatcher(tok_str, tok_type) ->
-      case string.starts_with(str, tok_str) {
-        True ->
-          Some(#(
-            string.drop_left(str, string.length(tok_str)),
-            tok_type,
-            string.length(tok_str),
-          ))
-        _ -> None
-      }
-    RegexMatcher(re, to_tok) ->
-      case regex.scan(re, str) {
-        [regex.Match(content, _), ..] ->
-          Some(#(
-            string.drop_left(str, string.length(content)),
-            to_tok(content),
+fn decide(mode: NumberMode) -> NumberMode {
+  case mode {
+    IntMode -> IntMode
+    DotNoDecimal -> DotDecimal
+    DotDecimal -> DotDecimal
+  }
+}
+
+fn number(
+  input: String,
+  start: Position,
+  content: String,
+  mode: NumberMode,
+) -> LexResult {
+  case input {
+    "." <> rest if mode == IntMode ->
+      number(rest, start, content <> ".", DotNoDecimal)
+
+    "0" <> rest -> number(rest, start, content <> "0", decide(mode))
+    "1" <> rest -> number(rest, start, content <> "1", decide(mode))
+    "2" <> rest -> number(rest, start, content <> "2", decide(mode))
+    "3" <> rest -> number(rest, start, content <> "3", decide(mode))
+    "4" <> rest -> number(rest, start, content <> "4", decide(mode))
+    "5" <> rest -> number(rest, start, content <> "5", decide(mode))
+    "6" <> rest -> number(rest, start, content <> "6", decide(mode))
+    "7" <> rest -> number(rest, start, content <> "7", decide(mode))
+    "8" <> rest -> number(rest, start, content <> "8", decide(mode))
+    "9" <> rest -> number(rest, start, content <> "9", decide(mode))
+
+    _ ->
+      case mode {
+        IntMode | DotDecimal ->
+          token(
+            input,
+            start,
+            token.Number(to_float(content)),
             string.length(content),
-          ))
-        [] -> None
+          )
+
+        DotNoDecimal ->
+          error.syntax_error(
+            "Expected decimal after decimal point",
+            pos_span(start, string.length(content)),
+          )
       }
   }
+}
+
+fn ident(input: String, start: Position, c: String) -> LexResult {
+  let #(name, rest) = take_content(input, c, is_alphanum)
+
+  let tok = case name {
+    "let" -> token.Let
+    "in" -> token.In
+    "try" -> token.Try
+    "throw" -> token.Throw
+    "if" -> token.If
+    "else" -> token.Else
+    "or" -> token.Or
+    "and" -> token.And
+    "import" -> token.Import
+    "as" -> token.As
+    "true" -> token.True
+    "false" -> token.False
+    _ -> token.Ident(name)
+  }
+
+  token(rest, start, tok, string.length(name))
 }
 
 // UTILS .......................................................................
 
-fn r(regex_string: String, to_tok: fn(String) -> TokenType) -> Matcher {
-  let assert Ok(re) = regex.from_string(regex_string)
-  RegexMatcher(re, to_tok)
-}
-
-fn s(s: String, tok_type: TokenType) -> Matcher {
-  StringMatcher(s, tok_type)
-}
-
-fn i(x) {
-  fn(_) { x }
+fn take_content(
+  input: String,
+  content: String,
+  predicate: fn(String) -> Bool,
+) -> #(String, String) {
+  case string.pop_grapheme(input) {
+    Ok(#(grapheme, rest)) -> {
+      case predicate(grapheme) {
+        True -> take_content(rest, content <> grapheme, predicate)
+        False -> #(content, input)
+      }
+    }
+    _ -> #(content, "")
+  }
 }
 
 fn to_float(x: String) -> Float {
   case int.parse(x) {
     Ok(n) -> int.to_float(n)
     _ -> result.unwrap(float.parse(x), 0.0)
+  }
+}
+
+fn is_alphanum(c: String) {
+  is_alpha(c) || is_num(c)
+}
+
+fn is_num(c: String) -> Bool {
+  case c {
+    "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" -> True
+
+    _ -> False
+  }
+}
+
+fn is_alpha(c: String) -> Bool {
+  case c {
+    "_"
+    | "a"
+    | "b"
+    | "c"
+    | "d"
+    | "e"
+    | "f"
+    | "g"
+    | "h"
+    | "i"
+    | "j"
+    | "k"
+    | "l"
+    | "m"
+    | "n"
+    | "o"
+    | "p"
+    | "q"
+    | "r"
+    | "s"
+    | "t"
+    | "u"
+    | "v"
+    | "w"
+    | "x"
+    | "y"
+    | "z"
+    | "A"
+    | "B"
+    | "C"
+    | "D"
+    | "E"
+    | "F"
+    | "G"
+    | "H"
+    | "I"
+    | "J"
+    | "K"
+    | "L"
+    | "M"
+    | "N"
+    | "O"
+    | "P"
+    | "Q"
+    | "R"
+    | "S"
+    | "T"
+    | "U"
+    | "V"
+    | "W"
+    | "X"
+    | "Y"
+    | "Z" -> True
+
+    _ -> False
   }
 }
