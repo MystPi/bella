@@ -74,7 +74,7 @@ fn run_str(str: String, path: String) -> Nil {
 
 fn create_project(name: String) -> Nil {
   case create_project_files(name) {
-    Ok(_) -> success("Created project: " <> name)
+    Ok(_) -> success("Created project in ./" <> name <> "/")
     _ -> error("Failed to create project")
   }
 }
