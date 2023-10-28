@@ -49,6 +49,13 @@ pub fn to_string(x: DataType) -> String {
   }
 }
 
+pub fn inspect(x: DataType) -> String {
+  case x {
+    String(s) -> utils.stringify(s)
+    _ -> to_string(x)
+  }
+}
+
 fn list_to_string(items: List(DataType)) -> String {
   let items =
     items
@@ -69,13 +76,6 @@ fn record_to_string(fields: map.Map(String, DataType)) -> String {
     |> string.join(", ")
 
   "{ " <> fields <> " }"
-}
-
-pub fn inspect(x: DataType) -> String {
-  case x {
-    String(s) -> utils.stringify(s)
-    _ -> to_string(x)
-  }
 }
 
 pub fn to_type(x: DataType) -> String {
