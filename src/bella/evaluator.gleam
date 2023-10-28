@@ -271,7 +271,10 @@ fn eval_call(callee: DataType, arg: DataType, scope: Scope) -> Evaluated {
     Builtin(func) -> func(arg, scope)
     Lambda0(..) ->
       error.runtime_error("Lambda must be called without an argument")
-    _ -> error.runtime_error("Expression cannot be called")
+    _ ->
+      error.runtime_error(
+        "`" <> types.inspect(callee) <> "` cannot be called\nThis could be caused from calling something with too many arguments.\nFor example, `add(1, 2, 3)` desugars to `add(1)(2)(3)` which reduces to `3(3)`",
+      )
   }
 }
 
@@ -287,7 +290,10 @@ fn eval_call0(callee: DataType, scope: Scope) -> Evaluated {
       )
     Builtin(..) ->
       error.runtime_error("Builtin must be called with an argument")
-    _ -> error.runtime_error("Expression cannot be called")
+    _ ->
+      error.runtime_error(
+        "`" <> types.inspect(callee) <> "` cannot be called",
+      )
   }
 }
 
