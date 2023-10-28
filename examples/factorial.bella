@@ -6,4 +6,4 @@ let fact =
       n * fact(n - 1)
 in
 
-4 |> fact |> print
+4 |> fact |> Io.println

@@ -6,3 +6,6 @@ pub fn unescape(a: String) -> String
 
 @external(javascript, "../ffi.ts", "stringify")
 pub fn stringify(a: String) -> String
+
+@external(javascript, "../ffi.ts", "readline")
+pub fn readline(message: String) -> String

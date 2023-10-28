@@ -5,12 +5,12 @@ let divide =
     else
       a / b
 in (
-  print('Before try')
+  Io.println('Before try')
 
   try
-    print(divide(1, 0))
+    Io.println(divide(1, 0))
   else
-    msg -> print(msg)
+    msg -> Io.println(msg)
 
-  print('After try')
+  Io.println('After try')
 )

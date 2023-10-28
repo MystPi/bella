@@ -71,7 +71,7 @@ fn record_to_string(fields: map.Map(String, DataType)) -> String {
   "{ " <> fields <> " }"
 }
 
-fn inspect(x: DataType) -> String {
+pub fn inspect(x: DataType) -> String {
   case x {
     String(s) -> utils.stringify(s)
     _ -> to_string(x)

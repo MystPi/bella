@@ -25,3 +25,7 @@ export function unescape(string: string) {
 export function stringify(string: string) {
   return JSON.stringify(string);
 }
+
+export function readline(message: string) {
+  return prompt(message);
+}

@@ -1,1 +1,1 @@
-print("\"Hello,\"\n\t" + '\'world!\'')
+Io.println("\"Hello,\"\n\t" + '\'world!\'')

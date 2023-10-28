@@ -19,4 +19,4 @@ let
     package + { tags: package.tags + { fun: true } }
 in
 
-bella.tags.fun |> print
+bella.tags.fun |> Io.println
