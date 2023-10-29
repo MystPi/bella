@@ -241,11 +241,13 @@ fn finish_call(tokens: Tokens, callee: Expr) -> Parsed {
 
 fn finish_call_args(tokens: Tokens, callee: Expr) -> Parsed {
   case tokens {
+    [#(token.RParen, _), ..rest]
+    | [#(token.Comma, _), #(token.RParen, _), ..rest] ->
+      finish_call(rest, callee)
     [#(token.Comma, _), ..rest] -> {
       use #(arg, rest) <- try(parse_expr(rest))
       finish_call_args(rest, Call(callee, arg))
     }
-    [#(token.RParen, _), ..rest] -> finish_call(rest, callee)
     [#(_, pos), ..] -> error.syntax_error("I expected a , or )", pos)
   }
 }
@@ -326,6 +328,9 @@ fn parse_record(tokens: Tokens) -> Parsed {
 
 fn finish_record(tokens: Tokens, fields: List(#(String, Expr))) -> Parsed {
   case tokens {
+    [#(token.RBrace, _), ..rest]
+    | [#(token.Comma, _), #(token.RBrace, _), ..rest] ->
+      Ok(#(Record(fields), rest))
     [#(token.Comma, _), ..rest] -> {
       use #(#(name, value, pos), rest) <- try(parse_record_item(rest))
       case list.any(fields, fn(f) { f.0 == name }) {
@@ -333,7 +338,6 @@ fn finish_record(tokens: Tokens, fields: List(#(String, Expr))) -> Parsed {
         False -> finish_record(rest, [#(name, value), ..fields])
       }
     }
-    [#(token.RBrace, _), ..rest] -> Ok(#(Record(fields), rest))
     [#(_, pos), ..] -> error.syntax_error("I expected a , or }", pos)
   }
 }
@@ -350,11 +354,13 @@ fn parse_list(tokens: Tokens) -> Parsed {
 
 fn finish_list(tokens: Tokens, items: List(Expr)) -> Parsed {
   case tokens {
+    [#(token.RBracket, _), ..rest]
+    | [#(token.Comma, _), #(token.RBracket, _), ..rest] ->
+      Ok(#(List(list.reverse(items)), rest))
     [#(token.Comma, _), ..rest] -> {
       use #(expr, rest) <- try(parse_expr(rest))
       finish_list(rest, [expr, ..items])
     }
-    [#(token.RBracket, _), ..rest] -> Ok(#(List(list.reverse(items)), rest))
     [#(_, pos), ..] -> error.syntax_error("I expected a , or ]", pos)
   }
 }
