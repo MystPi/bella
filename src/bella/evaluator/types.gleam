@@ -17,7 +17,7 @@ pub type DataType {
   List(List(DataType))
   Lambda(param: String, body: parser.Expr, closure: Scope)
   Lambda0(body: parser.Expr, closure: Scope)
-  Builtin(func: fn(DataType, Scope) -> Evaluated)
+  Function(func: fn(DataType, Scope) -> Evaluated)
 }
 
 pub type Scope =
@@ -45,7 +45,7 @@ pub fn to_string(x: DataType) -> String {
     List(l) -> list_to_string(l)
     Lambda(param, ..) -> "#lambda<" <> param <> ">"
     Lambda0(..) -> "#lambda<>"
-    Builtin(..) -> "#builtin"
+    Function(..) -> "#function"
   }
 }
 
@@ -86,6 +86,6 @@ pub fn to_type(x: DataType) -> String {
     Record(..) -> "record"
     List(..) -> "list"
     Lambda(..) | Lambda0(..) -> "lambda"
-    Builtin(..) -> "builtin"
+    Function(..) -> "function"
   }
 }

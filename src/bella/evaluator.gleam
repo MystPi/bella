@@ -6,9 +6,9 @@ import bella/error
 import bella/parser
 import bella/lexer
 import bella/lexer/token
-import bella/evaluator/builtins
+import bella/evaluator/functions
 import bella/evaluator/types.{
-  Bool, Builtin, DataType, Evaluated, Lambda, Lambda0, List, Number, Record,
+  Bool, Function, DataType, Evaluated, Lambda, Lambda0, List, Number, Record,
   Scope, String,
 }
 
@@ -21,9 +21,9 @@ pub fn evaluate_str(str: String) -> Evaluated {
 }
 
 fn evaluate(mod: parser.Module) -> Evaluated {
-  let builtins = [
-    #("import_", Builtin(import_file_builtin)),
-    ..builtins.builtins
+  let functions = [
+    #("import_", Function(import_file_function)),
+    ..functions.functions
   ]
   use imported <- try({
     use parser.Import(alias, path) <- list.try_map(mod.imports)
@@ -33,7 +33,7 @@ fn evaluate(mod: parser.Module) -> Evaluated {
   eval_all(
     mod.body,
     [],
-    map.merge(map.from_list(builtins), map.from_list(imported)),
+    map.merge(map.from_list(functions), map.from_list(imported)),
   )
 }
 
@@ -268,7 +268,7 @@ fn eval_call(callee: DataType, arg: DataType, scope: Scope) -> Evaluated {
       ))
       Ok(#(result, scope))
     }
-    Builtin(func) -> func(arg, scope)
+    Function(func) -> func(arg, scope)
     Lambda0(..) ->
       error.runtime_error("Lambda must be called without an argument")
     _ ->
@@ -288,8 +288,8 @@ fn eval_call0(callee: DataType, scope: Scope) -> Evaluated {
       error.runtime_error(
         "Lambda must be called with an argument, `" <> n <> "`",
       )
-    Builtin(..) ->
-      error.runtime_error("Builtin must be called with an argument")
+    Function(..) ->
+      error.runtime_error("Function must be called with an argument")
     _ ->
       error.runtime_error(
         "`" <> types.inspect(callee) <> "` cannot be called",
@@ -373,7 +373,7 @@ fn import_file(path: String) -> Evaluated {
   }
 }
 
-fn import_file_builtin(path: DataType, _: Scope) -> Evaluated {
+fn import_file_function(path: DataType, _: Scope) -> Evaluated {
   case path {
     String(path) -> import_file(path)
     _ -> error.runtime_error("Import path must be a string")

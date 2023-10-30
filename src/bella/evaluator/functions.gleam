@@ -1,13 +1,13 @@
 import gleam/io
 import bella/error
-import bella/evaluator/types.{Builtin, List, String}
+import bella/evaluator/types.{Function, List, String}
 
-pub const builtins = [
-  #("print", Builtin(print)),
-  #("to_string", Builtin(to_string)),
-  #("typeof", Builtin(typeof_)),
-  #("first", Builtin(first)),
-  #("rest", Builtin(rest)),
+pub const functions = [
+  #("print", Function(print)),
+  #("to_string", Function(to_string)),
+  #("typeof", Function(typeof_)),
+  #("first", Function(first)),
+  #("rest", Function(rest)),
 ]
 
 fn print(x, scope) {
