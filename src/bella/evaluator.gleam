@@ -23,7 +23,7 @@ pub fn evaluate_str(str: String) -> Evaluated {
 fn evaluate(mod: parser.Module) -> Evaluated {
   let functions = [
     #("import_", Function(import_file_function)),
-    ..functions.functions
+    ..functions.functions()
   ]
   use imported <- try({
     use parser.Import(alias, path) <- list.try_map(mod.imports)

@@ -10,4 +10,4 @@ let
     add5(2)
 in
 
-print(add7(6))
+Io.println(add7(6))

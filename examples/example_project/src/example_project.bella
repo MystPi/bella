@@ -1,4 +1,4 @@
 import hello
 import string/join
 
-print(join(hello, 'this is my Bella project!'))
+Io.println(join(hello, 'this is my Bella project!'))

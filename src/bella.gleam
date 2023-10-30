@@ -86,7 +86,7 @@ fn create_project_files(name: String) -> Result(Nil, simplifile.FileError) {
     "./" <> name <> "/bella.json",
   ))
   simplifile.write(
-    "print('Hello, world!')",
+    "Io.println('Hello, world!')",
     "./" <> name <> "/src/" <> name <> ".bella",
   )
 }

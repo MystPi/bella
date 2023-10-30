@@ -1,9 +1,9 @@
 let countdown =
   n ->
     if (n == 0)
-      print('Liftoff!')
+      Io.println('Liftoff!')
     else (
-      print(n)
+      Io.println(n)
       countdown(n - 1 )
     )
 in
