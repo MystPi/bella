@@ -94,35 +94,13 @@ let
         throw 'Value `' + Types.to_string(x) + '` did not match the given pattern'
 in
 
-let
-  test =
-    x ->
-      let
-        pattern =
-          list([
-            either(
-              lit("add"),
-              lit("sub")
-            ),
-            number,
-            number
-          ])
-      in
-
-      Io.println(x |> assert(pattern))
-in
-
-; { lit
-; , any
-; , is_type
-; , string
-; , number
-; , either
-; , list
-; }
-(
-  ["add", 1, 2] |> test
-  ["sub", 1, 3] |> test
-  ["add", 1, "2"] |> test
-  ["add", 1, 2, 3] |> test
-)
+{ Match
+, lit
+, any
+, is_type
+, string
+, number
+, either
+, list
+, assert
+}

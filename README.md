@@ -37,7 +37,7 @@ You can also compile an executable:
 gleam clean && gleam build
 
 # Compile
-deno compile --unstable --allow-all ./build/dev/javascript/bella/main.ts -o ./build/bella
+deno compile -o ./build/bella --unstable --allow-all ./build/dev/javascript/bella/main.ts
 
 # Run
 ./build/bella ./examples/countdown.bella
