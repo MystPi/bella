@@ -37,7 +37,7 @@ jobs:
         run: gleam clean && gleam build
 
       - name: Compile executable
-        run: deno compile --unstable --allow-all --target ${{ matrix.target }} ./build/dev/javascript/bella/main.ts -o ./build/bella-${{ matrix.target }}
+        run: deno compile -o ./build/bella-${{ matrix.target }} --unstable --allow-all --target ${{ matrix.target }} ./build/dev/javascript/bella/main.ts
 
       - name: List files
         run: ls build
