@@ -6,6 +6,8 @@ pub type Span {
   Span(from: Position, to: Position)
 }
 
+pub const useless_span = Span(Position(0, 0), Position(0, 0))
+
 pub type Token =
   #(TokenType, Span)
 

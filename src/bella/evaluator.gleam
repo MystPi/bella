@@ -8,7 +8,7 @@ import bella/lexer
 import bella/lexer/token
 import bella/evaluator/functions
 import bella/evaluator/types.{
-  Bool, Function, DataType, Evaluated, Lambda, Lambda0, List, Number, Record,
+  Bool, DataType, Evaluated, Function, Lambda, Lambda0, List, Number, Record,
   Scope, String,
 }
 
@@ -63,35 +63,36 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
     parser.Bool(x) -> Ok(#(Bool(x), scope))
     parser.Lambda(arg, body) -> Ok(#(Lambda(arg, body, scope), scope))
     parser.Lambda0(body) -> Ok(#(Lambda0(body, scope), scope))
-    parser.Var(x) -> get_var(x, scope)
+    parser.Var(x, pos) -> get_var(x, scope, pos)
     parser.Block(exprs) -> eval_all(exprs, [], scope)
     parser.Record(fields) -> eval_record(fields, map.new(), scope)
-    parser.RecordAccess(record, field) ->
-      eval_record_access(record, field, scope)
+    parser.RecordAccess(record, field, pos) ->
+      eval_record_access(record, field, scope, pos)
     parser.List(items) -> eval_list(items, scope)
     parser.BinOp(op, left, right) -> eval_binop(op, left, right, scope)
     parser.Unary(op, value) -> eval_unary(op, value, scope)
-    parser.Call(callee, arg) -> {
+    parser.Call(callee, arg, pos) -> {
       use #(callee, _) <- try(eval(callee, scope))
       use #(arg, _) <- try(eval(arg, scope))
-      eval_call(callee, arg, scope)
+      eval_call(callee, arg, scope, pos)
     }
-    parser.Call0(callee) -> {
+    parser.Call0(callee, pos) -> {
       use #(callee, _) <- try(eval(callee, scope))
-      eval_call0(callee, scope)
+      eval_call0(callee, scope, pos)
     }
     parser.Let(name, value, body) -> eval_let(name, value, body, scope)
-    parser.If(cond, true_branch, false_branch) ->
-      eval_if(cond, true_branch, false_branch, scope)
-    parser.Throw(value) -> eval_throw(value, scope)
+    parser.If(cond, true_branch, false_branch, pos) ->
+      eval_if(cond, true_branch, false_branch, scope, pos)
+    parser.Throw(value, pos) -> eval_throw(value, scope, pos)
     parser.Try(body, else) -> eval_try(body, else, scope)
   }
 }
 
-fn get_var(name: String, scope: Scope) -> Evaluated {
+fn get_var(name: String, scope: Scope, pos: token.Span) -> Evaluated {
   case map.get(scope, name) {
     Ok(x) -> Ok(#(x, scope))
-    _ -> error.runtime_error("There is no binding for `" <> name <> "`")
+    _ ->
+      error.runtime_error_pos("There is no binding for `" <> name <> "`", pos)
   }
 }
 
@@ -113,17 +114,20 @@ fn eval_record_access(
   record: parser.Expr,
   field: String,
   scope: Scope,
+  pos: token.Span,
 ) -> Evaluated {
   use #(record, _) <- try(eval(record, scope))
   case record {
     Record(fields) ->
       case map.get(fields, field) {
         Ok(x) -> Ok(#(x, scope))
-        _ -> error.runtime_error("Record has no `" <> field <> "` field")
+        _ ->
+          error.runtime_error_pos("Record has no `" <> field <> "` field", pos)
       }
     _ ->
-      error.runtime_error(
+      error.runtime_error_pos(
         "Expression has no `" <> field <> "` field because it is not a record",
+        pos,
       )
   }
 }
@@ -152,12 +156,11 @@ fn eval_binop(
         String(a), String(b) -> Ok(#(String(a <> b), scope))
         Record(a), Record(b) -> Ok(#(Record(map.merge(a, b)), scope))
         List(a), List(b) -> Ok(#(List(list.append(a, b)), scope))
-        a, b ->
+        _, _ ->
           op_error(
             "+",
             "numbers, strings, records, or lists and be the same type",
-            a,
-            b,
+            op.1,
           )
       }
     }
@@ -170,59 +173,59 @@ fn eval_binop(
     #(token.Minus, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a -. b), scope))
-        a, b -> op_error("-", "numbers", a, b)
+        _, _ -> op_error("-", "numbers", op.1)
       }
     }
     #(token.Star, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a *. b), scope))
-        a, b -> op_error("*", "numbers", a, b)
+        _, _ -> op_error("*", "numbers", op.1)
       }
     }
     #(token.Slash, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a /. b), scope))
-        a, b -> op_error("/", "numbers", a, b)
+        _, _ -> op_error("/", "numbers", op.1)
       }
     }
     #(token.Less, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <. b), scope))
-        a, b -> op_error("<", "numbers", a, b)
+        _, _ -> op_error("<", "numbers", op.1)
       }
     }
     #(token.Greater, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >. b), scope))
-        a, b -> op_error(">", "numbers", a, b)
+        _, _ -> op_error(">", "numbers", op.1)
       }
     }
     #(token.LessEq, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <=. b), scope))
-        a, b -> op_error("<=", "numbers", a, b)
+        _, _ -> op_error("<=", "numbers", op.1)
       }
     }
     #(token.GreaterEq, _) -> {
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >=. b), scope))
-        a, b -> op_error(">=", "numbers", a, b)
+        _, _ -> op_error(">=", "numbers", op.1)
       }
     }
     #(token.And, _) -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a && b), scope))
-        a, b -> op_error("`and`", "Booleans", a, b)
+        _, _ -> op_error("`and`", "Booleans", op.1)
       }
     }
     #(token.Or, _) -> {
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a || b), scope))
-        a, b -> op_error("`or`", "Booleans", a, b)
+        _, _ -> op_error("`or`", "Booleans", op.1)
       }
     }
-    #(token.RPipe, _) -> {
-      eval_call(right, left, scope)
+    #(token.RPipe, pos) -> {
+      eval_call(right, left, scope, pos)
     }
     _ -> error.runtime_error("BinOp not implemented")
   }
@@ -235,8 +238,9 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
       case value {
         Number(x) -> Ok(#(Number(0.0 -. x), scope))
         x ->
-          error.runtime_error(
+          error.runtime_error_pos(
             "Unary - applies to numbers; instead got a " <> types.to_type(x),
+            op.1,
           )
       }
     }
@@ -245,8 +249,9 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
       case value {
         Bool(x) -> Ok(#(Bool(!x), scope))
         x ->
-          error.runtime_error(
+          error.runtime_error_pos(
             "Unary ! applies to Booleans; instead got a " <> types.to_type(x),
+            op.1,
           )
       }
     }
@@ -259,7 +264,12 @@ fn create_var(name: String, value: DataType, scope: Scope) -> Scope {
   map.insert(scope, name, value)
 }
 
-fn eval_call(callee: DataType, arg: DataType, scope: Scope) -> Evaluated {
+fn eval_call(
+  callee: DataType,
+  arg: DataType,
+  scope: Scope,
+  pos: token.Span,
+) -> Evaluated {
   case callee {
     Lambda(param, body, closure) -> {
       use #(result, _) <- try(eval(
@@ -270,29 +280,32 @@ fn eval_call(callee: DataType, arg: DataType, scope: Scope) -> Evaluated {
     }
     Function(func) -> func(arg, scope)
     Lambda0(..) ->
-      error.runtime_error("Lambda must be called without an argument")
+      error.runtime_error_pos("Lambda must be called without an argument", pos)
     _ ->
-      error.runtime_error(
+      error.runtime_error_pos(
         "`" <> types.inspect(callee) <> "` cannot be called\nThis could be caused from calling something with too many arguments.\nFor example, `add(1, 2, 3)` desugars to `add(1)(2)(3)` which reduces to `3(3)`",
+        pos,
       )
   }
 }
 
-fn eval_call0(callee: DataType, scope: Scope) -> Evaluated {
+fn eval_call0(callee: DataType, scope: Scope, pos: token.Span) -> Evaluated {
   case callee {
     Lambda0(body, closure) -> {
       use #(result, _) <- try(eval(body, map.merge(scope, closure)))
       Ok(#(result, scope))
     }
     Lambda(n, ..) ->
-      error.runtime_error(
+      error.runtime_error_pos(
         "Lambda must be called with an argument, `" <> n <> "`",
+        pos,
       )
     Function(..) ->
-      error.runtime_error("Function must be called with an argument")
+      error.runtime_error_pos("Function must be called with an argument", pos)
     _ ->
-      error.runtime_error(
+      error.runtime_error_pos(
         "`" <> types.inspect(callee) <> "` cannot be called",
+        pos,
       )
   }
 }
@@ -313,6 +326,7 @@ fn eval_if(
   true_branch: parser.Expr,
   false_branch: parser.Expr,
   scope: Scope,
+  pos: token.Span,
 ) -> Evaluated {
   use #(cond, _) <- try(eval(cond, scope))
   case cond {
@@ -321,27 +335,35 @@ fn eval_if(
         True -> eval(true_branch, scope)
         False -> eval(false_branch, scope)
       }
-    _ -> error.runtime_error("The condition for `if` must be a Boolean")
+    _ ->
+      error.runtime_error_pos("The condition for `if` must be a Boolean", pos)
   }
 }
 
-fn eval_throw(value: parser.Expr, scope: Scope) -> Evaluated {
+fn eval_throw(value: parser.Expr, scope: Scope, pos: token.Span) -> Evaluated {
   // TODO: allow any DataType to be thrown (requires new error type)
   use #(value, _) <- try(eval(value, scope))
   case value {
-    String(s) -> error.runtime_error(s)
-    _ -> error.runtime_error("Can only `throw` strings")
+    String(s) -> error.runtime_error_pos(s, pos)
+    _ -> error.runtime_error_pos("Can only `throw` strings", pos)
   }
 }
 
 fn eval_try(body: parser.Expr, else: parser.Expr, scope: Scope) -> Evaluated {
   case eval(body, scope) {
     Ok(#(x, _)) -> Ok(#(x, scope))
-    Error(error.RuntimeError(msg)) -> {
+    Error(error.RuntimeError(msg)) | Error(error.RuntimeErrorPos(msg, _)) -> {
       case else {
         parser.Lambda(..) -> {
           use #(else, _) <- try(eval(else, scope))
-          eval_call(else, String(msg), scope)
+          eval_call(
+            else,
+            String(msg),
+            scope,
+            // Pass a 'useless' span to `eval_call` since it is guaranteed not to
+            // error from the arguments passed to it
+            token.useless_span,
+          )
         }
         _ -> eval(else, scope)
       }
@@ -351,12 +373,8 @@ fn eval_try(body: parser.Expr, else: parser.Expr, scope: Scope) -> Evaluated {
 
 // UTILS .......................................................................
 
-fn op_error(op: String, must_be: String, a: DataType, b: DataType) -> Evaluated {
-  error.runtime_error(
-    "Operands of " <> op <> " must be " <> must_be <> "; instead got a " <> types.to_type(
-      a,
-    ) <> " and a " <> types.to_type(b),
-  )
+fn op_error(op: String, must_be: String, pos: token.Span) -> Evaluated {
+  error.runtime_error_pos("Operands of " <> op <> " must be " <> must_be, pos)
 }
 
 fn import_file(path: String) -> Evaluated {

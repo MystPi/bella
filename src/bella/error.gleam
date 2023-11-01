@@ -9,6 +9,7 @@ import bella/lexer/token
 pub type Error {
   SyntaxError(String, token.Span)
   RuntimeError(String)
+  RuntimeErrorPos(String, token.Span)
   ImportedError(Error, String, String)
 }
 
@@ -20,6 +21,10 @@ pub fn syntax_error(msg: String, pos: token.Span) {
 
 pub fn runtime_error(msg: String) {
   gleam.Error(RuntimeError(msg))
+}
+
+pub fn runtime_error_pos(msg: String, pos: token.Span) {
+  gleam.Error(RuntimeErrorPos(msg, pos))
 }
 
 pub fn imported_error(err: Error, source: String, path: String) {
@@ -49,6 +54,15 @@ pub fn print_error_message(err: Error, source: String, path: String) -> Nil {
         from: #(span.from.line, span.from.col),
         to: #(span.to.line, span.to.col),
         message: "invalid syntax",
+        hint: ansi.blue("? ") <> msg,
+      )
+    RuntimeErrorPos(msg, span) ->
+      ansi.red("✕ ") <> hug.error(
+        source,
+        in: path,
+        from: #(span.from.line, span.from.col),
+        to: #(span.to.line, span.to.col),
+        message: "runtime error",
         hint: ansi.blue("? ") <> msg,
       )
     RuntimeError(msg) ->

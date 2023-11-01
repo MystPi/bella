@@ -1,29 +1,29 @@
 import gleam/list
 import gleam/result.{try}
 import bella/error
-import bella/lexer/token.{Token, TokenType, Tokens}
+import bella/lexer/token.{Span, Token, TokenType, Tokens}
 
 // TYPES .......................................................................
 
 pub type Expr {
-  Var(String)
+  Var(String, pos: Span)
   String(String)
   Number(Float)
   Bool(Bool)
   Block(List(Expr))
   Record(fields: List(#(String, Expr)))
-  RecordAccess(record: Expr, field: String)
+  RecordAccess(record: Expr, field: String, pos: Span)
   List(List(Expr))
   BinOp(operator: Token, left: Expr, right: Expr)
   Unary(operator: Token, value: Expr)
   Lambda(param: String, body: Expr)
   Lambda0(body: Expr)
   Let(name: String, value: Expr, body: Expr)
-  Call(callee: Expr, arg: Expr)
-  Call0(callee: Expr)
-  If(cond: Expr, true_branch: Expr, false_branch: Expr)
+  Call(callee: Expr, arg: Expr, pos: Span)
+  Call0(callee: Expr, pos: Span)
+  If(cond: Expr, true_branch: Expr, false_branch: Expr, pos: Span)
   Try(body: Expr, else: Expr)
-  Throw(value: Expr)
+  Throw(value: Expr, pos: Span)
 }
 
 pub type Module {
@@ -116,9 +116,9 @@ fn parse_expr(tokens: Tokens) -> Parsed {
       use #(body, rest) <- try(parse_expr(rest))
       Ok(#(Lambda0(body), rest))
     }
-    [#(token.Throw, _), ..rest] -> {
+    [#(token.Throw, pos), ..rest] -> {
       use #(value, rest) <- try(parse_expr(rest))
-      Ok(#(Throw(value), rest))
+      Ok(#(Throw(value, pos), rest))
     }
     [#(token.Try, _), ..rest] -> parse_try(rest)
     _ -> parse_pipe(tokens)
@@ -128,7 +128,7 @@ fn parse_expr(tokens: Tokens) -> Parsed {
 fn parse_let(tokens: Tokens) -> Parsed {
   case tokens {
     [#(token.Ident(name), _), ..rest] -> {
-      use rest <- expect(token.Eq, rest, "= after identifier")
+      use rest, _ <- expect(token.Eq, rest, "= after identifier")
       use #(value, rest) <- try(parse_expr(rest))
       finish_let(rest, Let(name, value, _))
     }
@@ -140,7 +140,7 @@ fn parse_let(tokens: Tokens) -> Parsed {
 fn finish_let(tokens: Tokens, constructor: fn(Expr) -> Expr) {
   case tokens {
     [#(token.Ident(name), _), ..rest] -> {
-      use rest <- expect(token.Eq, rest, "= after identifier")
+      use rest, _ <- expect(token.Eq, rest, "= after identifier")
       use #(value, rest) <- try(parse_expr(rest))
       use #(body, rest) <- try(finish_let(rest, Let(name, value, _)))
       Ok(#(constructor(body), rest))
@@ -154,18 +154,18 @@ fn finish_let(tokens: Tokens, constructor: fn(Expr) -> Expr) {
 }
 
 fn parse_if(tokens: Tokens) -> Parsed {
-  use rest <- expect(token.LParen, tokens, "( before condition")
+  use rest, pos1 <- expect(token.LParen, tokens, "( before condition")
   use #(condition, rest) <- try(parse_expr(rest))
-  use rest <- expect(token.RParen, rest, ") after condition")
+  use rest, pos2 <- expect(token.RParen, rest, ") after condition")
   use #(true_branch, rest) <- try(parse_expr(rest))
-  use rest <- expect(token.Else, rest, "`else` after true branch")
+  use rest, _ <- expect(token.Else, rest, "`else` after true branch")
   use #(false_branch, rest) <- try(parse_expr(rest))
-  Ok(#(If(condition, true_branch, false_branch), rest))
+  Ok(#(If(condition, true_branch, false_branch, Span(pos1.from, pos2.to)), rest))
 }
 
 fn parse_try(tokens: Tokens) -> Parsed {
   use #(body, rest) <- try(parse_expr(tokens))
-  use rest <- expect(token.Else, rest, "`else` after try body")
+  use rest, _ <- expect(token.Else, rest, "`else` after try body")
   use #(else, rest) <- try(parse_expr(rest))
   Ok(#(Try(body, else), rest))
 }
@@ -219,17 +219,17 @@ fn parse_call(tokens: Tokens) -> Parsed {
 
 fn finish_call(tokens: Tokens, callee: Expr) -> Parsed {
   case tokens {
-    [#(token.LParen, _), #(token.RParen, _), ..rest] -> {
-      finish_call(rest, Call0(callee))
+    [#(token.LParen, pos1), #(token.RParen, pos2), ..rest] -> {
+      finish_call(rest, Call0(callee, Span(pos1.from, pos2.to)))
     }
-    [#(token.LParen, _), ..rest] -> {
+    [#(token.LParen, pos), ..rest] -> {
       use #(arg, rest) <- try(parse_expr(rest))
-      finish_call_args(rest, Call(callee, arg))
+      finish_call_args(rest, Call(callee, arg, pos))
     }
     [#(token.Dot, _), ..rest] -> {
       case rest {
-        [#(token.Ident(name), _), ..rest] -> {
-          finish_call(rest, RecordAccess(callee, name))
+        [#(token.Ident(name), pos), ..rest] -> {
+          finish_call(rest, RecordAccess(callee, name, pos))
         }
         [#(_, pos), ..] ->
           error.syntax_error("I expected an identifier after .", pos)
@@ -244,9 +244,9 @@ fn finish_call_args(tokens: Tokens, callee: Expr) -> Parsed {
     [#(token.RParen, _), ..rest]
     | [#(token.Comma, _), #(token.RParen, _), ..rest] ->
       finish_call(rest, callee)
-    [#(token.Comma, _), ..rest] -> {
+    [#(token.Comma, pos), ..rest] -> {
       use #(arg, rest) <- try(parse_expr(rest))
-      finish_call_args(rest, Call(callee, arg))
+      finish_call_args(rest, Call(callee, arg, pos))
     }
     [#(_, pos), ..] -> error.syntax_error("I expected a , or )", pos)
   }
@@ -277,7 +277,7 @@ fn parse_primary(tokens: Tokens) -> Parsed {
   case tokens {
     [#(token.Number(x), _), ..rest] -> Ok(#(Number(x), rest))
     [#(token.String(x), _), ..rest] -> Ok(#(String(x), rest))
-    [#(token.Ident(x), _), ..rest] -> Ok(#(Var(x), rest))
+    [#(token.Ident(x), pos), ..rest] -> Ok(#(Var(x, pos), rest))
     [#(token.True, _), ..rest] -> Ok(#(Bool(True), rest))
     [#(token.False, _), ..rest] -> Ok(#(Bool(False), rest))
     [#(token.LParen, _), ..rest] -> parse_block(rest, [])
@@ -308,7 +308,7 @@ fn parse_record_item(tokens: Tokens) {
       Ok(#(#(name, value, pos), rest))
     }
     [#(token.Ident(name), pos), ..rest] -> {
-      Ok(#(#(name, Var(name), pos), rest))
+      Ok(#(#(name, Var(name, pos), pos), rest))
     }
     [#(_, pos), ..] -> error.syntax_error("I expected an identifier", pos)
   }
@@ -371,10 +371,10 @@ fn expect(
   tok: TokenType,
   tokens: Tokens,
   msg: String,
-  callback: fn(Tokens) -> Parsed,
+  callback: fn(Tokens, Span) -> Parsed,
 ) -> Parsed {
   case tokens {
-    [#(head, _), ..tail] if head == tok -> callback(tail)
+    [#(head, pos), ..tail] if head == tok -> callback(tail, pos)
     [#(_, pos), ..] -> error.syntax_error("I expected a " <> msg, pos)
   }
 }
