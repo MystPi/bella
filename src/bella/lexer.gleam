@@ -25,15 +25,15 @@ pub fn lex(str: String) -> Result(Tokens, error.Error) {
   |> Ok
 }
 
-pub fn lex_(
+fn lex_(
   input: String,
   pos: Position,
   tokens: Tokens,
 ) -> Result(Tokens, error.Error) {
-  use #(rest, pos, token) <- try(next(input, pos))
-  case token {
-    #(token.Eof, _) -> Ok([token, ..tokens])
-    token -> lex_(rest, pos, [token, ..tokens])
+  case next(input, pos) {
+    Ok(#(_, _, #(token.Eof, _) as token)) -> Ok([token, ..tokens])
+    Ok(#(rest, pos, token)) -> lex_(rest, pos, [token, ..tokens])
+    Error(err) -> Error(err)
   }
 }
 
