@@ -1,6 +1,6 @@
 # Language Tour
 
-_[back to index](index.md)_
+_[back to index](README.md)_
 
 This document gives a quick overview of Bella's features. Basic knowledge of functional programming and programming in general is assumed.
 
