@@ -1,7 +1,9 @@
 import gleam/list
 import gleam/result.{try}
 import bella/error
-import bella/lexer/token.{Span, Token, TokenType, Tokens}
+import bella/lexer/token.{
+  type Span, type Token, type TokenType, type Tokens, Span,
+}
 
 // TYPES .......................................................................
 

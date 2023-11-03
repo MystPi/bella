@@ -4,6 +4,7 @@ description = "A simple functional programming language"
 target = "javascript"
 licences = ["MIT"]
 repository = { type = "github", user = "MystPi", repo = "bella" }
+gleam = ">= 0.32.0"
 
 [dependencies]
 gleam_stdlib = "~> 0.29"

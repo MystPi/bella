@@ -8,7 +8,10 @@ import gleam/float
 import gleam/string
 import bella/error
 import bella/utils
-import bella/lexer/token.{Position, Span, Token, TokenType, Tokens}
+import bella/lexer/token.{
+  type Position, type Span, type Token, type TokenType, type Tokens, Position,
+  Span,
+}
 
 // TYPES .......................................................................
 

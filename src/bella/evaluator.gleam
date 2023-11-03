@@ -8,8 +8,8 @@ import bella/lexer
 import bella/lexer/token
 import bella/evaluator/functions
 import bella/evaluator/types.{
-  Bool, DataType, Evaluated, Function, Lambda, Lambda0, List, Number, Record,
-  Scope, String,
+  type DataType, type Evaluated, type Scope, Bool, Function, Lambda,
+  Lambda0, List, Number, Record, String,
 }
 
 // EVALUATOR ...................................................................
