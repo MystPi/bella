@@ -8,8 +8,8 @@ import bella/lexer
 import bella/lexer/token
 import bella/evaluator/functions
 import bella/evaluator/types.{
-  type DataType, type Evaluated, type Scope, Bool, Function, Lambda,
-  Lambda0, List, Number, Record, String,
+  type DataType, type Evaluated, type Scope, Bool, Function, Lambda, Lambda0,
+  List, Number, Record, String,
 }
 
 // EVALUATOR ...................................................................
@@ -150,7 +150,7 @@ fn eval_binop(
   use #(left, _) <- try(eval(left, scope))
   use #(right, _) <- try(eval(right, scope))
   case op {
-    #(token.Plus, _) -> {
+    #(token.Plus, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a +. b), scope))
         String(a), String(b) -> Ok(#(String(a <> b), scope))
@@ -163,70 +163,67 @@ fn eval_binop(
             op.1,
           )
       }
-    }
-    #(token.EqEq, _) -> {
-      Ok(#(Bool(left == right), scope))
-    }
-    #(token.Neq, _) -> {
-      Ok(#(Bool(left != right), scope))
-    }
-    #(token.Minus, _) -> {
+
+    #(token.EqEq, _) -> Ok(#(Bool(left == right), scope))
+
+    #(token.Neq, _) -> Ok(#(Bool(left != right), scope))
+
+    #(token.Minus, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a -. b), scope))
         _, _ -> op_error("-", "numbers", op.1)
       }
-    }
-    #(token.Star, _) -> {
+
+    #(token.Star, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a *. b), scope))
         _, _ -> op_error("*", "numbers", op.1)
       }
-    }
-    #(token.Slash, _) -> {
+
+    #(token.Slash, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a /. b), scope))
         _, _ -> op_error("/", "numbers", op.1)
       }
-    }
-    #(token.Less, _) -> {
+
+    #(token.Less, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <. b), scope))
         _, _ -> op_error("<", "numbers", op.1)
       }
-    }
-    #(token.Greater, _) -> {
+
+    #(token.Greater, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >. b), scope))
         _, _ -> op_error(">", "numbers", op.1)
       }
-    }
-    #(token.LessEq, _) -> {
+
+    #(token.LessEq, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <=. b), scope))
         _, _ -> op_error("<=", "numbers", op.1)
       }
-    }
-    #(token.GreaterEq, _) -> {
+
+    #(token.GreaterEq, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >=. b), scope))
         _, _ -> op_error(">=", "numbers", op.1)
       }
-    }
-    #(token.And, _) -> {
+
+    #(token.And, _) ->
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a && b), scope))
         _, _ -> op_error("`and`", "Booleans", op.1)
       }
-    }
-    #(token.Or, _) -> {
+
+    #(token.Or, _) ->
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a || b), scope))
         _, _ -> op_error("`or`", "Booleans", op.1)
       }
-    }
-    #(token.RPipe, pos) -> {
-      eval_call(right, left, scope, pos)
-    }
+
+    #(token.RPipe, pos) -> eval_call(right, left, scope, pos)
+
     _ -> error.runtime_error("BinOp not implemented")
   }
 }
