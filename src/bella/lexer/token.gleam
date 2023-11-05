@@ -53,9 +53,12 @@ pub type TokenType {
 
   Let
   In
+  Match
+  Is
   Try
   Throw
   If
+  Then
   Else
   Or
   And

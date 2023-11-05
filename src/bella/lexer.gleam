@@ -251,9 +251,12 @@ fn ident(input: String, start: Position, c: String) -> LexResult {
   let tok = case name {
     "let" -> token.Let
     "in" -> token.In
+    "match" -> token.Match
+    "is" -> token.Is
     "try" -> token.Try
     "throw" -> token.Throw
     "if" -> token.If
+    "then" -> token.Then
     "else" -> token.Else
     "or" -> token.Or
     "and" -> token.And
