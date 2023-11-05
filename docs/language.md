@@ -66,7 +66,7 @@ _[back to top](#language-tour)_
 
 _[back to top](#language-tour)_
 
-In Bella, variables (also known as _bindings_) are _immutible_; that is, they cannot be modified, reassigned, or changed in any way. The `let ... in` expression creates a variable for use in its body:
+In Bella, variables (also known as _bindings_) are _immutable_; that is, they cannot be modified, reassigned, or changed in any way. The `let ... in` expression creates a variable for use in its body:
 
 ```bella
 let my_name = "MystPi" in
@@ -127,7 +127,7 @@ Unlike some other programming languages, **any** combination of values can be in
 [2, true, "foo", [x, y, z], 4.5]
 ```
 
-Lists are immutible and cannot have items added or removed. The `+` operator helps with this by being able to concatenate two lists, returning a new one.
+Lists are immutable and cannot have items added or removed. The `+` operator helps with this by being able to concatenate two lists, returning a new one.
 
 ```
 [1, 2, 3] + [4, 5, 6]
@@ -154,7 +154,7 @@ bella.name
 ; => "Bella"
 ```
 
-Records, like everything in Bella, are immutible—a record's items cannot be changed. However, the `+` operator can merge two records and return the combined one.
+Records, like everything in Bella, are immutable—a record's items cannot be changed. However, the `+` operator can merge two records and return the combined one.
 
 ```bella
 let
