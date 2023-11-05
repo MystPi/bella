@@ -465,7 +465,10 @@ fn eval_if(
         False -> eval(false_branch, scope)
       }
     _ ->
-      error.runtime_error_pos("The condition for `if` must be a Boolean", cond_expr.1)
+      error.runtime_error_pos(
+        "The condition for `if` must be a Boolean",
+        cond_expr.1,
+      )
   }
 }
 
