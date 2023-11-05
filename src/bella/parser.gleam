@@ -16,11 +16,12 @@ pub type Expr {
   Record(fields: List(#(String, Expr)))
   RecordAccess(record: Expr, field: String, pos: Span)
   List(List(Expr))
+  ListRest(list: List(Expr), rest_name: String, pos: Span)
   BinOp(operator: Token, left: Expr, right: Expr)
   Unary(operator: Token, value: Expr)
   Lambda(param: String, body: Expr)
   Lambda0(body: Expr)
-  Let(name: String, value: Expr, body: Expr)
+  Let(pattern: Expr, value: Expr, body: Expr, pos: Span)
   Call(callee: Expr, arg: Expr, pos: Span)
   Call0(callee: Expr, pos: Span)
   If(cond: Expr, true_branch: Expr, false_branch: Expr, pos: Span)
@@ -128,30 +129,50 @@ fn parse_expr(tokens: Tokens) -> Parsed {
 }
 
 fn parse_let(tokens: Tokens) -> Parsed {
-  case tokens {
-    [#(token.Ident(name), _), ..rest] -> {
-      use rest, _ <- expect(token.Eq, rest, "= after identifier")
-      use #(value, rest) <- try(parse_expr(rest))
-      finish_let(rest, Let(name, value, _))
-    }
-    [#(_, pos), ..] ->
-      error.syntax_error("I expected an identifier after let", pos)
-  }
+  use #(pattern, rest) <- try(parse_pattern(tokens))
+  use rest, pos <- expect(token.Eq, rest, "= after pattern")
+  use #(value, rest) <- try(parse_expr(rest))
+
+  finish_let(rest, Let(pattern, value, _, pos))
 }
 
 fn finish_let(tokens: Tokens, constructor: fn(Expr) -> Expr) {
   case tokens {
-    [#(token.Ident(name), _), ..rest] -> {
-      use rest, _ <- expect(token.Eq, rest, "= after identifier")
-      use #(value, rest) <- try(parse_expr(rest))
-      use #(body, rest) <- try(finish_let(rest, Let(name, value, _)))
-      Ok(#(constructor(body), rest))
-    }
     [#(token.In, _), ..rest] -> {
       use #(body, rest) <- try(parse_expr(rest))
       Ok(#(constructor(body), rest))
     }
-    [#(_, pos), ..] -> error.syntax_error("I expected another initializer", pos)
+    _ -> {
+      use #(pattern, rest) <- try(parse_pattern(tokens))
+      use rest, pos <- expect(token.Eq, rest, "= after pattern")
+      use #(value, rest) <- try(parse_expr(rest))
+      use #(body, rest) <- try(finish_let(rest, Let(pattern, value, _, pos)))
+      Ok(#(constructor(body), rest))
+    }
+  }
+}
+
+fn parse_pattern(tokens: Tokens) -> Parsed {
+  use #(pattern, rest) <- try(parse_unary(tokens))
+  use _ <- try(validate_pattern(pattern))
+  Ok(#(pattern, rest))
+}
+
+fn validate_pattern(pattern: Expr) -> Result(Nil, error.Error) {
+  case pattern {
+    Var(..) | String(_) | Number(_) | Bool(_) | Unary(#(token.Caret, _), _) ->
+      Ok(Nil)
+    List(patterns) | ListRest(patterns, ..) ->
+      list.try_map(patterns, validate_pattern)
+      |> result.replace(Nil)
+    Record(fields) ->
+      {
+        use #(_, field) <- list.try_map(fields)
+        validate_pattern(field)
+      }
+      |> result.replace(Nil)
+    // TODO: positions & use syntax_error
+    _ -> error.runtime_error("Invalid pattern")
   }
 }
 
@@ -206,7 +227,9 @@ fn parse_factor(tokens: Tokens) -> Parsed {
 
 fn parse_unary(tokens: Tokens) -> Parsed {
   case tokens {
-    [#(token.Minus, _) as op, ..rest] | [#(token.Bang, _) as op, ..rest] -> {
+    [#(token.Minus, _) as op, ..rest]
+    | [#(token.Bang, _) as op, ..rest]
+    | [#(token.Caret, _) as op, ..rest] -> {
       use #(expr, rest) <- try(parse_unary(rest))
       Ok(#(Unary(op, expr), rest))
     }
@@ -356,6 +379,12 @@ fn parse_list(tokens: Tokens) -> Parsed {
 
 fn finish_list(tokens: Tokens, items: List(Expr)) -> Parsed {
   case tokens {
+    [#(token.Bar, pos1), #(token.Ident(name), pos2), ..rest] -> {
+      use rest, _ <- expect(token.RBracket, rest, "] after identifier")
+      Ok(#(ListRest(list.reverse(items), name, Span(pos1.from, pos2.to)), rest))
+    }
+    [#(token.Bar, _), #(_, pos), ..] ->
+      error.syntax_error("I expected an identifier", pos)
     [#(token.RBracket, _), ..rest]
     | [#(token.Comma, _), #(token.RBracket, _), ..rest] ->
       Ok(#(List(list.reverse(items)), rest))

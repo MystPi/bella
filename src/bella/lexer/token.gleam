@@ -40,10 +40,12 @@ pub type TokenType {
   Neq
   GreaterEq
   LessEq
+  Bar
   RPipe
   Greater
   Less
   Bang
+  Caret
 
   Ident(String)
   String(String)

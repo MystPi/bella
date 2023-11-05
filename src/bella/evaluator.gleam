@@ -80,11 +80,14 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
       use #(callee, _) <- try(eval(callee, scope))
       eval_call0(callee, scope, pos)
     }
-    parser.Let(name, value, body) -> eval_let(name, value, body, scope)
+    parser.Let(pattern, value, body, pos) ->
+      eval_let(pattern, value, body, scope, pos)
     parser.If(cond, true_branch, false_branch, pos) ->
       eval_if(cond, true_branch, false_branch, scope, pos)
     parser.Throw(value, pos) -> eval_throw(value, scope, pos)
     parser.Try(body, else) -> eval_try(body, else, scope)
+    parser.ListRest(_, _, pos) ->
+      error.runtime_error_pos("| is only allowed in patterns", pos)
   }
 }
 
@@ -252,6 +255,8 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
           )
       }
     }
+    #(token.Caret, pos) ->
+      error.runtime_error_pos("^ not allowed outside of patterns", pos)
     // Make the compiler happy :)
     _ -> error.runtime_error("Unary operator not implemented")
   }
@@ -308,14 +313,132 @@ fn eval_call0(callee: DataType, scope: Scope, pos: token.Span) -> Evaluated {
 }
 
 fn eval_let(
-  name: String,
+  pattern: parser.Expr,
   value: parser.Expr,
   body: parser.Expr,
   scope: Scope,
+  pos: token.Span,
 ) -> Evaluated {
   use #(value, _) <- try(eval(value, scope))
-  use #(result, _) <- try(eval(body, create_var(name, value, scope)))
+  use pattern_scope <- try(pattern_match(pattern, value, scope, pos))
+  use #(result, _) <- try(eval(body, pattern_scope))
   Ok(#(result, scope))
+}
+
+fn pattern_match(
+  pattern: parser.Expr,
+  value: DataType,
+  scope: Scope,
+  pos: token.Span,
+) -> Result(Scope, error.Error) {
+  case pattern, value {
+    parser.Var(name, ..), _ -> Ok(create_var(name, value, scope))
+    parser.String(string), String(value) if string == value -> Ok(scope)
+    parser.Number(num), Number(value) if num == value -> Ok(scope)
+    parser.Bool(bool), Bool(value) if bool == value -> Ok(scope)
+    parser.List(pats), _ -> {
+      use #(scope, rest_list) <- try(pattern_match_list(pats, value, scope, pos))
+
+      case rest_list {
+        [] -> Ok(scope)
+        _ ->
+          error.runtime_error_pos(
+            "List did not match pattern: it is too long",
+            pos,
+          )
+      }
+    }
+    parser.ListRest(pats, rest_name, _), _ -> {
+      use #(scope, rest_list) <- try(pattern_match_list(pats, value, scope, pos))
+      Ok(create_var(rest_name, List(rest_list), scope))
+    }
+    parser.Record(fields), _ -> pattern_match_record(fields, value, scope, pos)
+    parser.Unary(#(token.Caret, unary_pos), unary_value), _ -> {
+      use #(unary_pattern, _) <- try(eval(unary_value, scope))
+      use pattern <- try(to_pattern(unary_pattern, unary_pos))
+      pattern_match(pattern, value, scope, pos)
+    }
+
+    _, _ ->
+      error.runtime_error_pos(
+        "Value `" <> types.inspect(value) <> "` did not match pattern",
+        pos,
+      )
+  }
+}
+
+fn to_pattern(
+  value: DataType,
+  pos: token.Span,
+) -> Result(parser.Expr, error.Error) {
+  case value {
+    String(s) -> Ok(parser.String(s))
+    Number(n) -> Ok(parser.Number(n))
+    Bool(b) -> Ok(parser.Bool(b))
+    List(values) -> {
+      use patterns <- try(list.try_map(values, to_pattern(_, pos)))
+      Ok(parser.List(patterns))
+    }
+    Record(fields) -> {
+      use pattern_fields <- try({
+        use #(name, value) <- list.try_map(map.to_list(fields))
+        use pattern <- try(to_pattern(value, pos))
+        Ok(#(name, pattern))
+      })
+      pattern_fields
+      |> parser.Record
+      |> Ok
+    }
+    _ ->
+      error.runtime_error_pos(
+        "Cannot convert `" <> types.inspect(value) <> "` to a valid pattern",
+        pos,
+      )
+  }
+}
+
+fn pattern_match_list(
+  patterns: List(parser.Expr),
+  value: DataType,
+  scope: Scope,
+  pos: token.Span,
+) -> Result(#(Scope, List(DataType)), error.Error) {
+  case patterns, value {
+    [first_pat, ..rest_pats], List([first_val, ..rest_vals]) -> {
+      use scope <- try(pattern_match(first_pat, first_val, scope, pos))
+      pattern_match_list(rest_pats, List(rest_vals), scope, pos)
+    }
+    [], List(rest) -> Ok(#(scope, rest))
+    _, List([]) ->
+      error.runtime_error_pos(
+        "List did not match pattern: it is too short",
+        pos,
+      )
+  }
+}
+
+fn pattern_match_record(
+  pat_fields: List(#(String, parser.Expr)),
+  value: DataType,
+  scope: Scope,
+  pos: token.Span,
+) -> Result(Scope, error.Error) {
+  case pat_fields, value {
+    [#(name, pattern), ..rest], Record(value_fields) -> {
+      case map.get(value_fields, name) {
+        Ok(field_value) -> {
+          use scope <- try(pattern_match(pattern, field_value, scope, pos))
+          pattern_match_record(rest, value, scope, pos)
+        }
+        _ ->
+          error.runtime_error_pos(
+            "Record did not match pattern: the field `" <> name <> "` is not present",
+            pos,
+          )
+      }
+    }
+    [], _ -> Ok(scope)
+  }
 }
 
 fn eval_if(

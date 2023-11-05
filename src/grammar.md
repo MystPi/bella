@@ -14,7 +14,7 @@ expr :=
   | try_expr
 
 lambda := Ident? '->' expr
-let_expr := 'let' ( Ident '=' expr 'in' )+ expr
+let_expr := 'let' ( pattern '=' expr 'in' )+ expr
 if_expr := 'if' '(' expr ')' expr 'else' expr
 throw_expr := 'throw' expr
 try_expr := 'try' expr 'else' expr
@@ -26,8 +26,11 @@ equality := comparison ( ( '==' | '!=' ) comparison )*
 comparison := term ( ( '>' | '>=' | '<' | '<=' ) term )*
 term := factor ( ( '+' | '-' ) factor )*
 factor := unary ( ( '/' | '*' ) unary )*
-unary := ( '-' | '!' ) unary | call
+unary := ( '-' | '!' | '^' ) unary | call
 call := primary ( '(' comma_sep<expr>? ')' | '.' Ident )*
+
+// Pattern is validated after parse
+pattern := unary
 
 primary :=
   | Ident
@@ -40,7 +43,7 @@ primary :=
 
 record := '{' comma_sep<record_item>? '}'
 record_item := Ident ( ':' expr )?
-list := '[' comma_sep<expr>? ']'
+list := '[' comma_sep<expr>? ('|' ident)? ']'
 block := '(' expr+ ')'
 bool := 'true' | 'false'
 
