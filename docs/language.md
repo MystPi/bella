@@ -140,7 +140,7 @@ Lists are immutable and cannot have items added or removed. The `+` operator hel
 
 _[back to top](#language-tour)_
 
-A record is a collection of keys and values. The `.` operator is used to access a value with a specific key.
+A record is a collection of keys and values, also known as *fields*. The `.` operator is used to access a field.
 
 ```bella
 let bella =
@@ -154,7 +154,7 @@ bella.name
 ; => "Bella"
 ```
 
-Records, like everything in Bella, are immutable—a record's items cannot be changed. However, the `+` operator can merge two records and return the combined one.
+Records, like everything in Bella, are immutable—a record's fields cannot be changed. However, the `+` operator can merge two records and return the combined one.
 
 ```bella
 let
@@ -169,7 +169,7 @@ first + second
 ; => { x: 1, y: 2, z: 3 }
 ```
 
-> Tip: there is a helpful shorthand for writing record items like `name: name` or `value: value`. In those cases, you can omit both the colon and the variable name:
+> Tip: there is a helpful shorthand for writing record fields like `name: name` or `value: value`. In those cases, you can omit both the colon and the variable name:
 >
 > ```bella
 > { name
