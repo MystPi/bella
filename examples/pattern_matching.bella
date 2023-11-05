@@ -16,4 +16,4 @@ let
   [x, y | rest] = [1, 2, 3, 4]
 in
 
-Io.println(rest)
+Io.println("Everything matched successfully!")

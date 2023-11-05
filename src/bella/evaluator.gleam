@@ -58,36 +58,37 @@ fn eval_all(
 
 fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
   case expr {
-    parser.Number(x) -> Ok(#(Number(x), scope))
-    parser.String(x) -> Ok(#(String(x), scope))
-    parser.Bool(x) -> Ok(#(Bool(x), scope))
-    parser.Lambda(arg, body) -> Ok(#(Lambda(arg, body, scope), scope))
-    parser.Lambda0(body) -> Ok(#(Lambda0(body, scope), scope))
-    parser.Var(x, pos) -> get_var(x, scope, pos)
-    parser.Block(exprs) -> eval_all(exprs, [], scope)
-    parser.Record(fields) -> eval_record(fields, map.new(), scope)
-    parser.RecordAccess(record, field, pos) ->
+    #(parser.Number(x), _) -> Ok(#(Number(x), scope))
+    #(parser.String(x), _) -> Ok(#(String(x), scope))
+    #(parser.Bool(x), _) -> Ok(#(Bool(x), scope))
+    #(parser.Lambda(arg, body), _) -> Ok(#(Lambda(arg, body, scope), scope))
+    #(parser.Lambda0(body), _) -> Ok(#(Lambda0(body, scope), scope))
+    #(parser.Var(x), pos) -> get_var(x, scope, pos)
+    #(parser.Block(exprs), _) -> eval_all(exprs, [], scope)
+    #(parser.Record(fields), _) -> eval_record(fields, map.new(), scope)
+    #(parser.RecordAccess(record, field), pos) ->
       eval_record_access(record, field, scope, pos)
-    parser.List(items) -> eval_list(items, scope)
-    parser.BinOp(op, left, right) -> eval_binop(op, left, right, scope)
-    parser.Unary(op, value) -> eval_unary(op, value, scope)
-    parser.Call(callee, arg, pos) -> {
+    #(parser.List(items), _) -> eval_list(items, scope)
+    #(parser.BinOp(op, left, right), pos) ->
+      eval_binop(op, left, right, scope, pos)
+    #(parser.Unary(op, value), pos) -> eval_unary(op, value, scope, pos)
+    #(parser.Call(callee, arg), pos) -> {
       use #(callee, _) <- try(eval(callee, scope))
       use #(arg, _) <- try(eval(arg, scope))
       eval_call(callee, arg, scope, pos)
     }
-    parser.Call0(callee, pos) -> {
+    #(parser.Call0(callee), pos) -> {
       use #(callee, _) <- try(eval(callee, scope))
       eval_call0(callee, scope, pos)
     }
-    parser.Let(pattern, value, body, pos) ->
-      eval_let(pattern, value, body, scope, pos)
-    parser.If(cond, true_branch, false_branch, pos) ->
-      eval_if(cond, true_branch, false_branch, scope, pos)
-    parser.Throw(value, pos) -> eval_throw(value, scope, pos)
-    parser.Try(body, else) -> eval_try(body, else, scope)
-    parser.ListRest(_, _, pos) ->
-      error.runtime_error_pos("| is only allowed in patterns", pos)
+    #(parser.Let(pattern, value, body), _) ->
+      eval_let(pattern, value, body, scope)
+    #(parser.If(cond, true_branch, false_branch), _) ->
+      eval_if(cond, true_branch, false_branch, scope)
+    #(parser.Throw(value), pos) -> eval_throw(value, scope, pos)
+    #(parser.Try(body, else), _) -> eval_try(body, else, scope)
+    #(parser.PatList(..), pos) ->
+      error.runtime_error_pos("List with | is only allowed in patterns", pos)
   }
 }
 
@@ -149,6 +150,7 @@ fn eval_binop(
   left: parser.Expr,
   right: parser.Expr,
   scope: Scope,
+  pos: token.Span,
 ) -> Evaluated {
   use #(left, _) <- try(eval(left, scope))
   use #(right, _) <- try(eval(right, scope))
@@ -163,7 +165,7 @@ fn eval_binop(
           op_error(
             "+",
             "numbers, strings, records, or lists and be the same type",
-            op.1,
+            pos,
           )
       }
 
@@ -174,64 +176,69 @@ fn eval_binop(
     #(token.Minus, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a -. b), scope))
-        _, _ -> op_error("-", "numbers", op.1)
+        _, _ -> op_error("-", "numbers", pos)
       }
 
     #(token.Star, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a *. b), scope))
-        _, _ -> op_error("*", "numbers", op.1)
+        _, _ -> op_error("*", "numbers", pos)
       }
 
     #(token.Slash, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Number(a /. b), scope))
-        _, _ -> op_error("/", "numbers", op.1)
+        _, _ -> op_error("/", "numbers", pos)
       }
 
     #(token.Less, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <. b), scope))
-        _, _ -> op_error("<", "numbers", op.1)
+        _, _ -> op_error("<", "numbers", pos)
       }
 
     #(token.Greater, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >. b), scope))
-        _, _ -> op_error(">", "numbers", op.1)
+        _, _ -> op_error(">", "numbers", pos)
       }
 
     #(token.LessEq, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a <=. b), scope))
-        _, _ -> op_error("<=", "numbers", op.1)
+        _, _ -> op_error("<=", "numbers", pos)
       }
 
     #(token.GreaterEq, _) ->
       case left, right {
         Number(a), Number(b) -> Ok(#(Bool(a >=. b), scope))
-        _, _ -> op_error(">=", "numbers", op.1)
+        _, _ -> op_error(">=", "numbers", pos)
       }
 
     #(token.And, _) ->
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a && b), scope))
-        _, _ -> op_error("`and`", "Booleans", op.1)
+        _, _ -> op_error("`and`", "Booleans", pos)
       }
 
     #(token.Or, _) ->
       case left, right {
         Bool(a), Bool(b) -> Ok(#(Bool(a || b), scope))
-        _, _ -> op_error("`or`", "Booleans", op.1)
+        _, _ -> op_error("`or`", "Booleans", pos)
       }
 
-    #(token.RPipe, pos) -> eval_call(right, left, scope, pos)
+    #(token.RPipe, _) -> eval_call(right, left, scope, pos)
 
     _ -> error.runtime_error("BinOp not implemented")
   }
 }
 
-fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
+fn eval_unary(
+  op: token.Token,
+  value: parser.Expr,
+  scope: Scope,
+  pos: token.Span,
+) -> Evaluated {
   case op {
     #(token.Minus, _) -> {
       use #(value, _) <- try(eval(value, scope))
@@ -240,7 +247,7 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
         x ->
           error.runtime_error_pos(
             "Unary - applies to numbers; instead got a " <> types.to_type(x),
-            op.1,
+            pos,
           )
       }
     }
@@ -251,11 +258,11 @@ fn eval_unary(op: token.Token, value: parser.Expr, scope: Scope) -> Evaluated {
         x ->
           error.runtime_error_pos(
             "Unary ! applies to Booleans; instead got a " <> types.to_type(x),
-            op.1,
+            pos,
           )
       }
     }
-    #(token.Caret, pos) ->
+    #(token.Caret, _) ->
       error.runtime_error_pos("^ not allowed outside of patterns", pos)
     // Make the compiler happy :)
     _ -> error.runtime_error("Unary operator not implemented")
@@ -314,13 +321,17 @@ fn eval_call0(callee: DataType, scope: Scope, pos: token.Span) -> Evaluated {
 
 fn eval_let(
   pattern: parser.Expr,
-  value: parser.Expr,
+  value_expr: parser.Expr,
   body: parser.Expr,
   scope: Scope,
-  pos: token.Span,
 ) -> Evaluated {
-  use #(value, _) <- try(eval(value, scope))
-  use pattern_scope <- try(pattern_match(pattern, value, scope, pos))
+  use #(value, _) <- try(eval(value_expr, scope))
+  use pattern_scope <- try(pattern_match(
+    pattern,
+    value,
+    scope,
+    parser.span(pattern.1, value_expr.1),
+  ))
   use #(result, _) <- try(eval(body, pattern_scope))
   Ok(#(result, scope))
 }
@@ -332,11 +343,11 @@ fn pattern_match(
   pos: token.Span,
 ) -> Result(Scope, error.Error) {
   case pattern, value {
-    parser.Var(name, ..), _ -> Ok(create_var(name, value, scope))
-    parser.String(string), String(value) if string == value -> Ok(scope)
-    parser.Number(num), Number(value) if num == value -> Ok(scope)
-    parser.Bool(bool), Bool(value) if bool == value -> Ok(scope)
-    parser.List(pats), _ -> {
+    #(parser.Var(name), _), _ -> Ok(create_var(name, value, scope))
+    #(parser.String(string), _), String(value) if string == value -> Ok(scope)
+    #(parser.Number(num), _), Number(value) if num == value -> Ok(scope)
+    #(parser.Bool(bool), _), Bool(value) if bool == value -> Ok(scope)
+    #(parser.List(pats), _), _ -> {
       use #(scope, rest_list) <- try(pattern_match_list(pats, value, scope, pos))
 
       case rest_list {
@@ -348,14 +359,15 @@ fn pattern_match(
           )
       }
     }
-    parser.ListRest(pats, rest_name, _), _ -> {
+    #(parser.PatList(pats, rest_name), _), _ -> {
       use #(scope, rest_list) <- try(pattern_match_list(pats, value, scope, pos))
       Ok(create_var(rest_name, List(rest_list), scope))
     }
-    parser.Record(fields), _ -> pattern_match_record(fields, value, scope, pos)
-    parser.Unary(#(token.Caret, unary_pos), unary_value), _ -> {
-      use #(unary_pattern, _) <- try(eval(unary_value, scope))
-      use pattern <- try(to_pattern(unary_pattern, unary_pos))
+    #(parser.Record(fields), _), _ ->
+      pattern_match_record(fields, value, scope, pos)
+    #(parser.Unary(#(token.Caret, _), unary_expr), _), _ -> {
+      use #(unary_pattern, _) <- try(eval(unary_expr, scope))
+      use pattern <- try(to_pattern(unary_pattern, unary_expr.1))
       pattern_match(pattern, value, scope, pos)
     }
 
@@ -372,12 +384,12 @@ fn to_pattern(
   pos: token.Span,
 ) -> Result(parser.Expr, error.Error) {
   case value {
-    String(s) -> Ok(parser.String(s))
-    Number(n) -> Ok(parser.Number(n))
-    Bool(b) -> Ok(parser.Bool(b))
+    String(s) -> Ok(#(parser.String(s), pos))
+    Number(n) -> Ok(#(parser.Number(n), pos))
+    Bool(b) -> Ok(#(parser.Bool(b), pos))
     List(values) -> {
       use patterns <- try(list.try_map(values, to_pattern(_, pos)))
-      Ok(parser.List(patterns))
+      Ok(#(parser.List(patterns), pos))
     }
     Record(fields) -> {
       use pattern_fields <- try({
@@ -385,9 +397,7 @@ fn to_pattern(
         use pattern <- try(to_pattern(value, pos))
         Ok(#(name, pattern))
       })
-      pattern_fields
-      |> parser.Record
-      |> Ok
+      Ok(#(parser.Record(pattern_fields), pos))
     }
     _ ->
       error.runtime_error_pos(
@@ -442,13 +452,12 @@ fn pattern_match_record(
 }
 
 fn eval_if(
-  cond: parser.Expr,
+  cond_expr: parser.Expr,
   true_branch: parser.Expr,
   false_branch: parser.Expr,
   scope: Scope,
-  pos: token.Span,
 ) -> Evaluated {
-  use #(cond, _) <- try(eval(cond, scope))
+  use #(cond, _) <- try(eval(cond_expr, scope))
   case cond {
     Bool(x) ->
       case x {
@@ -456,7 +465,7 @@ fn eval_if(
         False -> eval(false_branch, scope)
       }
     _ ->
-      error.runtime_error_pos("The condition for `if` must be a Boolean", pos)
+      error.runtime_error_pos("The condition for `if` must be a Boolean", cond_expr.1)
   }
 }
 
@@ -474,7 +483,7 @@ fn eval_try(body: parser.Expr, else: parser.Expr, scope: Scope) -> Evaluated {
     Ok(#(x, _)) -> Ok(#(x, scope))
     Error(error.RuntimeError(msg)) | Error(error.RuntimeErrorPos(msg, _)) -> {
       case else {
-        parser.Lambda(..) -> {
+        #(parser.Lambda(..), _) -> {
           use #(else, _) <- try(eval(else, scope))
           eval_call(
             else,

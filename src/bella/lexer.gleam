@@ -63,8 +63,8 @@ fn next(input: String, pos: Position) -> LexResult {
     "]" <> rest -> token(rest, pos, token.RBracket, 1)
 
     // Punctuation
-    "|" <> rest -> token(rest, pos, token.Bar, 1)
     "|>" <> rest -> token(rest, pos, token.RPipe, 2)
+    "|" <> rest -> token(rest, pos, token.Bar, 1)
     "->" <> rest -> token(rest, pos, token.Arrow, 2)
     "==" <> rest -> token(rest, pos, token.EqEq, 2)
     "!=" <> rest -> token(rest, pos, token.Neq, 2)
