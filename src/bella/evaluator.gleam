@@ -83,6 +83,10 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
     }
     #(parser.Let(pattern, value, body), _) ->
       eval_let(pattern, value, body, scope)
+    #(parser.Match(value_expr, clauses), _) -> {
+      use #(value, _) <- try(eval(value_expr, scope))
+      eval_match(value, clauses, scope, value_expr.1)
+    }
     #(parser.If(cond, true_branch, false_branch), _) ->
       eval_if(cond, true_branch, false_branch, scope)
     #(parser.Throw(value), pos) -> eval_throw(value, scope, pos)
@@ -334,6 +338,23 @@ fn eval_let(
   ))
   use #(result, _) <- try(eval(body, pattern_scope))
   Ok(#(result, scope))
+}
+
+fn eval_match(
+  value: DataType,
+  clauses: List(#(parser.Expr, parser.Expr)),
+  scope: Scope,
+  value_pos: token.Span,
+) -> Evaluated {
+  case clauses {
+    [#(pattern, body), ..rest] -> {
+      case pattern_match(pattern, value, scope, pattern.1) {
+        Ok(scope) -> eval(body, scope)
+        _ -> eval_match(value, rest, scope, value_pos)
+      }
+    }
+    [] -> error.runtime_error_pos("No match found", value_pos)
+  }
 }
 
 fn pattern_match(

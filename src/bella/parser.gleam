@@ -27,6 +27,7 @@ pub type ExprAst {
   If(cond: Expr, true_branch: Expr, false_branch: Expr)
   Try(body: Expr, else: Expr)
   Throw(value: Expr)
+  Match(value: Expr, cases: List(#(Expr, Expr)))
 }
 
 type Expr =
@@ -127,6 +128,7 @@ fn parse_expr(tokens: Tokens) -> Parsed {
       Ok(#(#(Throw(value), span(from, value.1)), rest))
     }
     [#(token.Try, from), ..rest] -> parse_try(rest, from)
+    [#(token.Match, from), ..rest] -> parse_match(rest, from)
     _ -> parse_pipe(tokens)
   }
 }
@@ -212,6 +214,33 @@ fn parse_try(tokens: Tokens, from: Span) -> Parsed {
   use rest, _ <- expect(token.Else, rest, "`else` after try body")
   use #(else, rest) <- try(parse_expr(rest))
   Ok(#(#(Try(body, else), span(from, else.1)), rest))
+}
+
+fn parse_match(tokens: Tokens, from: Span) -> Parsed {
+  use #(value, rest) <- try(parse_expr(tokens))
+  use rest, _ <- expect(token.Is, rest, "`is` after match value")
+  use #(pattern, rest) <- try(parse_pattern(rest))
+  use rest, _ <- expect(token.Then, rest, "`then` after match pattern")
+  use #(body, rest) <- try(parse_expr(rest))
+  finish_match(rest, value, [#(pattern, body)], from, body.1)
+}
+
+fn finish_match(
+  tokens: Tokens,
+  value: Expr,
+  clauses: List(#(Expr, Expr)),
+  from: Span,
+  to: Span,
+) -> Parsed {
+  case tokens {
+    [#(token.Is, _), ..rest] -> {
+      use #(pattern, rest) <- try(parse_pattern(rest))
+      use rest, _ <- expect(token.Then, rest, "`then` after match pattern")
+      use #(body, rest) <- try(parse_expr(rest))
+      finish_match(rest, value, [#(pattern, body), ..clauses], from, body.1)
+    }
+    _ -> Ok(#(#(Match(value, list.reverse(clauses)), span(from, to)), tokens))
+  }
 }
 
 fn parse_pipe(tokens: Tokens) -> Parsed {

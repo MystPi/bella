@@ -4,21 +4,22 @@ let
 
   map =
     list -> fn ->
-      if (list == [])
-        []
-      else
-        [List.first(list) |> fn] + map(List.rest(list), fn)
+      match list
+        is [] then []
+        is [first | rest] then
+          [fn(first)] + map(rest, fn)
 
   reduce =
     list -> acc -> fn ->
-      if (list == [])
-        acc
-      else
-        reduce(List.rest(list), fn(List.first(list), acc), fn)
+      match list
+        is [] then acc
+        is [first | rest] then
+          reduce(rest, fn(first, acc), fn)
 
   fold =
     list -> fn ->
-      reduce(List.rest(list), List.first(list), fn)
+      let [first | rest] = list in
+      reduce(rest, first, fn)
 in
 (
   ; Squares
