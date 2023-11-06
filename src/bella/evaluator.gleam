@@ -445,6 +445,11 @@ fn pattern_match_list(
         "List did not match pattern: it is too short",
         pos,
       )
+    _, _ ->
+      error.runtime_error_pos(
+        "Value did not match pattern: it is not a list",
+        pos,
+      )
   }
 }
 
