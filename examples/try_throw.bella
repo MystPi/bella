@@ -1,6 +1,6 @@
 let divide =
   a -> b ->
-    if (b == 0)
+    if b == 0 then
       throw 'Cannot divide by 0'
     else
       a / b

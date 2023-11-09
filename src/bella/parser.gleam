@@ -197,9 +197,8 @@ fn validate_pattern(pattern: Expr) -> Result(Nil, error.Error) {
 }
 
 fn parse_if(tokens: Tokens, from: Span) -> Parsed {
-  use rest, _ <- expect(token.LParen, tokens, "( before condition")
-  use #(condition, rest) <- try(parse_expr(rest))
-  use rest, _ <- expect(token.RParen, rest, ") after condition")
+  use #(condition, rest) <- try(parse_expr(tokens))
+  use rest, _ <- expect(token.Then, rest, "`then` after condition")
   use #(true_branch, rest) <- try(parse_expr(rest))
   use rest, _ <- expect(token.Else, rest, "`else` after true branch")
   use #(false_branch, rest) <- try(parse_expr(rest))
