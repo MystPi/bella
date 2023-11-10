@@ -16,7 +16,7 @@ expr :=
 
 lambda := Ident? '->' expr
 let_expr := 'let' ( pattern '=' expr 'in' )+ expr
-if_expr := 'if' '(' expr ')' expr 'else' expr
+if_expr := 'if' expr 'then' expr 'else' expr
 throw_expr := 'throw' expr
 try_expr := 'try' expr 'else' expr
 match_expr := 'match' match_clause+
