@@ -93,6 +93,8 @@ fn eval(expr: parser.Expr, scope: Scope) -> Evaluated {
     #(parser.Try(body, else), _) -> eval_try(body, else, scope)
     #(parser.PatList(..), pos) ->
       error.runtime_error_pos("List with | is only allowed in patterns", pos)
+    #(parser.NamedPat(..), pos) ->
+      error.runtime_error_pos("`as` is only allowed in patterns", pos)
   }
 }
 
@@ -267,7 +269,7 @@ fn eval_unary(
       }
     }
     #(token.Caret, _) ->
-      error.runtime_error_pos("^ not allowed outside of patterns", pos)
+      error.runtime_error_pos("^ in only allowed in patterns", pos)
     // Make the compiler happy :)
     _ -> error.runtime_error("Unary operator not implemented")
   }
@@ -368,6 +370,10 @@ fn pattern_match(
     #(parser.String(string), _), String(value) if string == value -> Ok(scope)
     #(parser.Number(num), _), Number(value) if num == value -> Ok(scope)
     #(parser.Bool(bool), _), Bool(value) if bool == value -> Ok(scope)
+    #(parser.NamedPat(pat, name), _), _ -> {
+      use scope <- try(pattern_match(pat, value, scope, pos))
+      Ok(create_var(name, value, scope))
+    }
     #(parser.List(pats), _), _ -> {
       use #(scope, rest_list) <- try(pattern_match_list(pats, value, scope, pos))
 

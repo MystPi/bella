@@ -28,12 +28,13 @@ logic_and := equality ( 'and' equality )*
 equality := comparison ( ( '==' | '!=' ) comparison )*
 comparison := term ( ( '>' | '>=' | '<' | '<=' ) term )*
 term := factor ( ( '+' | '-' ) factor )*
-factor := unary ( ( '/' | '*' ) unary )*
+factor := named_pat ( ( '/' | '*' ) named_pat )*
+named_pat := unary ( 'as' ident )?
 unary := ( '-' | '!' | '^' ) unary | call
 call := primary ( '(' comma_sep<expr>? ')' | '.' Ident )*
 
 // Pattern is validated after parse
-pattern := unary
+pattern := named_pat
 
 primary :=
   | Ident

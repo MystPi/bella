@@ -28,6 +28,7 @@ pub type ExprAst {
   Try(body: Expr, else: Expr)
   Throw(value: Expr)
   Match(value: Expr, cases: List(#(Expr, Expr)))
+  NamedPat(value: Expr, name: String)
 }
 
 type Expr =
@@ -170,7 +171,7 @@ fn finish_let(
 }
 
 fn parse_pattern(tokens: Tokens) -> Parsed {
-  use #(pattern, rest) <- try(parse_unary(tokens))
+  use #(pattern, rest) <- try(parse_named_pat(tokens))
   use _ <- try(validate_pattern(pattern))
   Ok(#(pattern, rest))
 }
@@ -182,6 +183,7 @@ fn validate_pattern(pattern: Expr) -> Result(Nil, error.Error) {
     | #(Number(_), _)
     | #(Bool(_), _)
     | #(Unary(#(token.Caret, _), _), _) -> Ok(Nil)
+    #(NamedPat(p, _), _) -> validate_pattern(p)
     #(List(patterns), _) | #(PatList(patterns, _), _) ->
       list.try_map(patterns, validate_pattern)
       |> result.replace(Nil)
@@ -271,7 +273,21 @@ fn parse_term(tokens: Tokens) -> Parsed {
 }
 
 fn parse_factor(tokens: Tokens) -> Parsed {
-  parse_binop(tokens, [token.Star, token.Slash], parse_unary)
+  parse_binop(tokens, [token.Star, token.Slash], parse_named_pat)
+}
+
+fn parse_named_pat(tokens: Tokens) -> Parsed {
+  use #(expr, rest) <- try(parse_unary(tokens))
+
+  case rest {
+    [#(token.As, _), #(token.Ident(name), to), ..rest] -> {
+      use _ <- try(validate_pattern(expr))
+      Ok(#(#(NamedPat(expr, name), span(expr.1, to)), rest))
+    }
+    [#(token.As, _), #(_, pos), ..] ->
+      error.syntax_error("I expected an identifier after `as`", pos)
+    _ -> Ok(#(expr, rest))
+  }
 }
 
 fn parse_unary(tokens: Tokens) -> Parsed {
