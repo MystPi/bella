@@ -30,7 +30,7 @@ comparison := term ( ( '>' | '>=' | '<' | '<=' ) term )*
 term := factor ( ( '+' | '-' ) factor )*
 factor := named_pat ( ( '/' | '*' ) named_pat )*
 named_pat := unary ( 'as' ident )?
-unary := ( '-' | '!' | '^' ) unary | call
+unary := ( '-' | '!' | '^' | '?' ) unary | call
 call := primary ( '(' comma_sep<expr>? ')' | '.' Ident )*
 
 // Pattern is validated after parse

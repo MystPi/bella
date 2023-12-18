@@ -182,7 +182,8 @@ fn validate_pattern(pattern: Expr) -> Result(Nil, error.Error) {
     | #(String(_), _)
     | #(Number(_), _)
     | #(Bool(_), _)
-    | #(Unary(#(token.Caret, _), _), _) -> Ok(Nil)
+    | #(Unary(#(token.Caret, _), _), _)
+    | #(Unary(#(token.Question, _), _), _) -> Ok(Nil)
     #(NamedPat(p, _), _) -> validate_pattern(p)
     #(List(patterns), _) | #(PatList(patterns, _), _) ->
       list.try_map(patterns, validate_pattern)
@@ -294,7 +295,8 @@ fn parse_unary(tokens: Tokens) -> Parsed {
   case tokens {
     [#(token.Minus, from) as op, ..rest]
     | [#(token.Bang, from) as op, ..rest]
-    | [#(token.Caret, from) as op, ..rest] -> {
+    | [#(token.Caret, from) as op, ..rest]
+    | [#(token.Question, from) as op, ..rest] -> {
       use #(expr, rest) <- try(parse_unary(rest))
       Ok(#(#(Unary(op, expr), span(from, expr.1)), rest))
     }

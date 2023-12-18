@@ -82,6 +82,7 @@ fn next(input: String, pos: Position) -> LexResult {
     "<" <> rest -> token(rest, pos, token.Less, 1)
     "!" <> rest -> token(rest, pos, token.Bang, 1)
     "^" <> rest -> token(rest, pos, token.Caret, 1)
+    "?" <> rest -> token(rest, pos, token.Question, 1)
 
     // String
     "\"" <> rest -> string(rest, pos, "", "\"")

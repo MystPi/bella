@@ -397,6 +397,24 @@ fn pattern_match(
       use pattern <- try(to_pattern(unary_pattern, unary_expr.1))
       pattern_match(pattern, value, scope, pos)
     }
+    #(parser.Unary(#(token.Question, _), unary_expr), _), _ -> {
+      use #(pattern_fn, _) <- try(eval(unary_expr, scope))
+      use #(result, _) <- try(eval_call(pattern_fn, value, scope, unary_expr.1))
+
+      case result {
+        Bool(True) -> Ok(scope)
+        Bool(False) ->
+          error.runtime_error_pos(
+            "Value `" <> types.inspect(value) <> "` did not match pattern function",
+            pos,
+          )
+        _ ->
+          error.runtime_error_pos(
+            "Pattern function must return a Boolean",
+            unary_expr.1,
+          )
+      }
+    }
 
     _, _ ->
       error.runtime_error_pos(

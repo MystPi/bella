@@ -46,6 +46,7 @@ pub type TokenType {
   Less
   Bang
   Caret
+  Question
 
   Ident(String)
   String(String)

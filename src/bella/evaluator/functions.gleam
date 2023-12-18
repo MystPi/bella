@@ -2,7 +2,7 @@ import gleam/io
 import gleam/map
 import bella/error
 import bella/utils
-import bella/evaluator/types.{Function, List, Record, String}
+import bella/evaluator/types.{Function, List, Record, String, Bool}
 
 pub fn functions() {
   let bella_io =
@@ -19,6 +19,7 @@ pub fn functions() {
       #("to_string", Function(to_string)),
       #("typeof", Function(typeof_)),
       #("inspect", Function(inspect)),
+      #("is_type", Function(is_type))
     ]
     |> map.from_list
     |> Record
@@ -62,6 +63,15 @@ fn inspect(x, scope) {
   Ok(#(String(types.inspect(x)), scope))
 }
 
+fn is_type(t, scope) {
+  use x, _ <- nest_function(scope)
+
+  case t {
+    String(t) -> Ok(#(Bool(types.to_type(x) == t), scope))
+    _ -> error.runtime_error("Type must be a string")
+  }
+}
+
 // LIST ........................................................................
 
 fn first(x, scope) {
@@ -84,4 +94,10 @@ fn rest(x, scope) {
         "I expected a list; instead got a " <> types.to_type(x),
       )
   }
+}
+
+// UTILS .......................................................................
+
+fn nest_function(scope, func) {
+  Ok(#(Function(func), scope))
 }

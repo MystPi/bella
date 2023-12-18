@@ -14,6 +14,7 @@ let
   ^[1, 1 + 1, 1 + 1 + 1, 1 + 1 + 1 + 1] = [1, 2, 3, 4]
   [x, y | rest] = [1, 2, 3, 4]
   [x, ^(x + 1) as y, ^(x + 2) as z] = [1, 2, 3]
+  ?Types.is_type("string") = "32"
 in
 
 Io.println("Everything matched successfully!")
