@@ -1,5 +1,7 @@
 # Language Tour
 
+> *Note: this document is not completely up-to-date, mostly notably with the addition of pattern matching. The examples should still work, but not every aspect of Bella is covered.*
+
 _[back to index](README.md)_
 
 This document gives a quick overview of Bella's features. Basic knowledge of functional programming and programming in general is assumed.
@@ -276,7 +278,7 @@ There are only two control flow expressions: `if` and `try`. Loops, such as `whi
 The `if` expression takes a Boolean condition and determines which branch to return depending on if the condition evaluates to `true`.
 
 ```bella
-if (1 + 1 == 2)
+if 1 + 1 == 2 then
   "It's two!"
 else
   "Math must be broken"
@@ -287,11 +289,11 @@ else
 Every `if` **must** be followed by an `else`. Multiple `if`-`else`s can be chained together:
 
 ```bella
-if (a)
+if a then
   ; ...
-else if (b)
+else if b then
   ; ...
-else if (c)
+else if c then
   ; ...
 else
   ; ...
@@ -344,7 +346,7 @@ I have been using the term 'expression' quite a lot. But what _is_ an expression
 Quite simply, an expression is a bit of code that returns a value. `42`, `"hello"`, `5 * 6 + 3`, and `do_something(blah)` are all expressions. Even `if`, `try`, and `let` are expressions since they return values as well:
 
 ```bella
-if (true) 5 else 6
+if true then 5 else 6
 ; => 5
 ```
 
@@ -364,7 +366,7 @@ Io.println(
     your_name = Io.readline("What is your name?")
   in
 
-  if (your_name == "MystPi")
+  if your_name == "MystPi" then
     "weirdo"
   else
     your_name
