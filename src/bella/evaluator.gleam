@@ -270,6 +270,8 @@ fn eval_unary(
     }
     #(token.Caret, _) ->
       error.runtime_error_pos("^ in only allowed in patterns", pos)
+    #(token.Question, _) ->
+      error.runtime_error_pos("? is only allowed in patterns", pos)
     // Make the compiler happy :)
     _ -> error.runtime_error("Unary operator not implemented")
   }
