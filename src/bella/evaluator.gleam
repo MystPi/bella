@@ -293,7 +293,7 @@ fn eval_call(
       ))
       Ok(#(result, scope))
     }
-    Function(func) -> func(arg, scope)
+    Function(func) -> func(arg, scope, pos)
     Lambda0(..) ->
       error.runtime_error_pos("Lambda must be called without an argument", pos)
     _ ->
@@ -573,9 +573,9 @@ fn import_file(path: String) -> Evaluated {
   }
 }
 
-fn import_file_function(path: DataType, _: Scope) -> Evaluated {
+fn import_file_function(path: DataType, _: Scope, pos: token.Span) -> Evaluated {
   case path {
     String(path) -> import_file(path)
-    _ -> error.runtime_error("Import path must be a string")
+    _ -> error.runtime_error_pos("Import path must be a string", pos)
   }
 }
