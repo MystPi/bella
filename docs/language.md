@@ -1,6 +1,6 @@
 # Language Tour
 
-> *Note: this document is not completely up-to-date, mostly notably with the addition of pattern matching. The examples should still work, but not every aspect of Bella is covered.*
+> *Note: this document is not completely up-to-date, most notably with the addition of pattern matching. The examples should still work, but not every aspect of Bella is covered.*
 
 _[back to index](README.md)_
 
