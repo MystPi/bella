@@ -64,6 +64,7 @@ fn next(input: String, pos: Position) -> LexResult {
 
     // Punctuation
     "|>" <> rest -> token(rest, pos, token.RPipe, 2)
+    "|" <> rest -> token(rest, pos, token.Bar, 1)
     "->" <> rest -> token(rest, pos, token.Arrow, 2)
     "==" <> rest -> token(rest, pos, token.EqEq, 2)
     "!=" <> rest -> token(rest, pos, token.Neq, 2)
@@ -80,6 +81,8 @@ fn next(input: String, pos: Position) -> LexResult {
     ">" <> rest -> token(rest, pos, token.Greater, 1)
     "<" <> rest -> token(rest, pos, token.Less, 1)
     "!" <> rest -> token(rest, pos, token.Bang, 1)
+    "^" <> rest -> token(rest, pos, token.Caret, 1)
+    "?" <> rest -> token(rest, pos, token.Question, 1)
 
     // String
     "\"" <> rest -> string(rest, pos, "", "\"")
@@ -249,9 +252,12 @@ fn ident(input: String, start: Position, c: String) -> LexResult {
   let tok = case name {
     "let" -> token.Let
     "in" -> token.In
+    "match" -> token.Match
+    "is" -> token.Is
     "try" -> token.Try
     "throw" -> token.Throw
     "if" -> token.If
+    "then" -> token.Then
     "else" -> token.Else
     "or" -> token.Or
     "and" -> token.And

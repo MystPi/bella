@@ -1,0 +1,20 @@
+let
+  test = [1, 2, 3]
+  [a, b, _] = test
+  ^test = [1, 2, 3]
+  y = 42
+  42 = y
+  x = false
+  false = x
+  ["add", a, b] = ["add", 50, 40]
+  [x, ^Io.println(x * x), ^Io.println(x * x * x)] = [2, 4, 8]
+  { name, cool: true } = { name: "MystPi", cool: true }
+  { type: "dog", props: { name } } = { type: "dog", props: { name: "Bella" }}
+  ^{ foo: true, bar: "blah" } = { foo: true, bar: "blah" }
+  ^[1, 1 + 1, 1 + 1 + 1, 1 + 1 + 1 + 1] = [1, 2, 3, 4]
+  [x, y | rest] = [1, 2, 3, 4]
+  [x, ^(x + 1) as y, ^(x + 2) as z] = [1, 2, 3]
+  ?Types.is_type("string") = "32"
+in
+
+Io.println("Everything matched successfully!")

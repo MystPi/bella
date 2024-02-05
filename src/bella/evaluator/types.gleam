@@ -6,6 +6,7 @@ import gleam/string
 import bella/error
 import bella/parser
 import bella/utils
+import bella/lexer/token
 
 // TYPES .......................................................................
 
@@ -17,7 +18,7 @@ pub type DataType {
   List(List(DataType))
   Lambda(param: String, body: parser.Expr, closure: Scope)
   Lambda0(body: parser.Expr, closure: Scope)
-  Function(func: fn(DataType, Scope) -> Evaluated)
+  Function(func: fn(DataType, Scope, token.Span) -> Evaluated)
 }
 
 pub type Scope =

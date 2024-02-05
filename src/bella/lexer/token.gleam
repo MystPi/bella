@@ -40,10 +40,13 @@ pub type TokenType {
   Neq
   GreaterEq
   LessEq
+  Bar
   RPipe
   Greater
   Less
   Bang
+  Caret
+  Question
 
   Ident(String)
   String(String)
@@ -51,9 +54,12 @@ pub type TokenType {
 
   Let
   In
+  Match
+  Is
   Try
   Throw
   If
+  Then
   Else
   Or
   And
