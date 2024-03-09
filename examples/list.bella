@@ -9,25 +9,25 @@ let
         is [first | rest] then
           [fn(first)] + map(rest, fn)
 
-  reduce =
+  fold =
     list -> acc -> fn ->
       match list
         is [] then acc
         is [first | rest] then
-          reduce(rest, fn(first, acc), fn)
+          fold(rest, fn(first, acc), fn)
 
-  fold =
+  reduce =
     list -> fn ->
       let [first | rest] = list in
-      reduce(rest, first, fn)
+      fold(rest, first, fn)
 in
 (
   ; Squares
   map(mylist, x -> x * x) |> Io.println
 
   ; Sum
-  fold(mylist, x -> a -> x + a) |> Io.println
+  reduce(mylist, x -> a -> x + a) |> Io.println
 
   ; Length
-  reduce(mylist, 0, x -> a -> a + 1) |> Io.println
+  fold(mylist, 0, x -> a -> a + 1) |> Io.println
 )
