@@ -6,6 +6,20 @@ _[back to index](README.md)_
 
 This document gives a quick overview of Bella's features. Basic knowledge of functional programming and programming in general is assumed.
 
+- [Hello World](#hello-world)
+- [Comments](#comments)
+- [Values](#values)
+  - [Lists](#lists)
+  - [Records](#records)
+- [Operators](#operators)
+- [Variables (`let ... in`)](#variables-let--in)
+- [Lambdas](#lambdas)
+- [Control Flow](#control-flow)
+  - [`if`](#if)
+  - [`try` and `throw`](#try-and-throw)
+- [Expressions](#expressions)
+
+
 ## Hello World
 
 ```bella
@@ -39,6 +53,73 @@ Complex values are, well, more complex, and can contain other values and [expres
 - [Lists](#lists): `[1, 2, 3, 4]`, `["a", true, 3]`
 - [Records](#records): `{ name: "Bella", type: "dog" }`
 - [Lambdas](#lambdas): `x -> Io.print(x)`, `a -> b -> a + b`
+
+### Lists
+
+_[back to top](#language-tour)_
+
+> _This section is a work in progress_
+
+A list is a sequence of values, wrapped in square brackets.
+
+```
+["egg", "cheese", "lettuce", "tomato"]
+```
+
+Unlike some other programming languages, **any** combination of values can be in a list. They do not all have to be the same type.
+
+```
+[2, true, "foo", [x, y, z], 4.5]
+```
+
+Lists are immutable and cannot have items added or removed. The `+` operator helps with this by being able to concatenate two lists, returning a new one.
+
+```
+[1, 2, 3] + [4, 5, 6]
+; => [1, 2, 3, 4, 5, 6]
+```
+
+### Records
+
+_[back to top](#language-tour)_
+
+A record is a collection of keys and values, also known as *fields*. The `.` operator is used to access a field.
+
+```bella
+let bella =
+  { name: "Bella"
+  , type: "dog"
+  , living: false
+  }
+in
+
+bella.name
+; => "Bella"
+```
+
+Records, like everything in Bella, are immutable—a record's fields cannot be changed. However, the `+` operator can merge two records and return the combined one.
+
+```bella
+let
+  first =
+    { x: 1, y: 0 }
+
+  second =
+    { y: 2, z: 3}
+in
+
+first + second
+; => { x: 1, y: 2, z: 3 }
+```
+
+> Tip: there is a helpful shorthand for writing record fields like `name: name` or `value: value`. In those cases, you can omit both the colon and the variable name:
+>
+> ```bella
+> { name
+> , value
+> , foo: true
+> }
+> ```
 
 ## Operators
 
@@ -112,73 +193,6 @@ Io.println(x)
 > ```
 
 > [As we will soon see](#expressions), parenthesis can be used to group multiple expressions into one.
-
-## Lists
-
-_[back to top](#language-tour)_
-
-A list is a sequence of values, wrapped in square brackets.
-
-```
-["egg", "cheese", "lettuce", "tomato"]
-```
-
-Unlike some other programming languages, **any** combination of values can be in a list. They do not all have to be the same type.
-
-```
-[2, true, "foo", [x, y, z], 4.5]
-```
-
-Lists are immutable and cannot have items added or removed. The `+` operator helps with this by being able to concatenate two lists, returning a new one.
-
-```
-[1, 2, 3] + [4, 5, 6]
-; => [1, 2, 3, 4, 5, 6]
-```
-
-> _This section is a work in progress_
-
-## Records
-
-_[back to top](#language-tour)_
-
-A record is a collection of keys and values, also known as *fields*. The `.` operator is used to access a field.
-
-```bella
-let bella =
-  { name: "Bella"
-  , type: "dog"
-  , living: false
-  }
-in
-
-bella.name
-; => "Bella"
-```
-
-Records, like everything in Bella, are immutable—a record's fields cannot be changed. However, the `+` operator can merge two records and return the combined one.
-
-```bella
-let
-  first =
-    { x: 1, y: 0 }
-
-  second =
-    { y: 2, z: 3}
-in
-
-first + second
-; => { x: 1, y: 2, z: 3 }
-```
-
-> Tip: there is a helpful shorthand for writing record fields like `name: name` or `value: value`. In those cases, you can omit both the colon and the variable name:
->
-> ```bella
-> { name
-> , value
-> , foo: true
-> }
-> ```
 
 ## Lambdas
 
@@ -267,7 +281,7 @@ Ah, much better!
 > Io.println(Types.typeof("Hello"))
 > ```
 
-## Control Flow: `if` and `try`
+## Control Flow
 
 _[back to top](#language-tour)_
 
@@ -299,7 +313,7 @@ else
   ; ...
 ```
 
-### `try` (and `throw`)
+### `try` and `throw`
 
 The `try` expression handles runtime errors.
 
